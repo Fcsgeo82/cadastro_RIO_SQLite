@@ -1,0 +1,28 @@
+# Arquivos compilados do Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ambientes virtuais
+.venv/
+venv/
+env/
+ENV/
+
+# Arquivos de IDE e editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arquivos de credenciais e segredos (MUITO IMPORTANTE)
+client_secrets.json
+.env
+
+# Logs e outros
+*.log
+pip-log.txt
+
+# Arquivos do SO
+.DS_Store
+Thumbs.db
