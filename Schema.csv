@@ -63,7 +63,7 @@ exclusaoLinha,oficio,STRING
 exclusaoLinha,dataExclusao,DATE
 exclusaoLinha,linhaID,STRING
 operador,operadorID,STRING
-operador,cnpj,INT64
+operador,cnpj,STRING
 operador,nomeFantasia,STRING
 operador,razaoSocial,STRING
 operador,termo,STRING
