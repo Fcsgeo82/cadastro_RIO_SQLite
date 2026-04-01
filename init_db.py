@@ -32,6 +32,7 @@ def init_db():
             "servico TEXT",
             "operador TEXT",
             "vista TEXT",
+            "via TEXT",
             "areaOperacional TEXT",
             "oficio TEXT",
             "oficioprimeiroHistorico TEXT",

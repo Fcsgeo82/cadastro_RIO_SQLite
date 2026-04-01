@@ -78,6 +78,10 @@ def render(linha_id: str):
                     dt = None
             dataCriacaoLinha = st.date_input("Data de Criação *", value=dt)
 
+        colV1, colV2 = st.columns(2)
+        with colV1:
+            via = st.text_input("Via", value=dados_bd.get("via") or "")
+
         col4, col5 = st.columns(2)
         with col4:
             servico_label  = _selectbox("Serviço", refs.get("servicos", {}), dados_bd.get("servico"), obrigatorio=True)
@@ -235,6 +239,7 @@ def render(linha_id: str):
             "servico":                  servico_label,
             "operador":                 operador_label,
             "vista":                    vista,
+            "via":                      via,
             "areaOperacional":          area_op_id,
             "oficio":                   oficio_id,
             "oficioprimeiroHistorico":  oficio_prim_hist_id,

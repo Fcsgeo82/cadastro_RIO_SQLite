@@ -51,6 +51,7 @@ def render(linha_id: str):
     v_linha = dados.get('numeroLinha', '-')
     v_servico = _obter_label(refs.get('servicos', {}), dados.get('servico'))
     v_vista = dados.get('vista', '-')
+    v_via = dados.get('via') or '-'
     v_operador = _obter_label(refs.get('operadores', {}), dados.get('operador'))
     v_criacao = dados.get('dataCriacaoLinha') or '-'
     v_tipo = _obter_label(refs.get('tipos_sistema', {}), dados.get('tipoSistema'))
@@ -224,6 +225,9 @@ def render(linha_id: str):
             </tr>
             <tr>
                 <th>Vista:</th><td colspan="3">{v_vista}</td>
+            </tr>
+            <tr>
+                <th>Via:</th><td colspan="3">{v_via}</td>
             </tr>
             <tr>
                 <th>Operador:</th><td>{v_operador}</td>
