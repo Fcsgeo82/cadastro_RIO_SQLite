@@ -10,6 +10,7 @@ import mod_cadastro_ref
 import mod_consulta
 import mod_ficha
 import mod_edicao
+import mod_historico
 
 # --- Configuração da página ---
 st.set_page_config(
@@ -152,6 +153,10 @@ elif aba == "Ficha":
 elif aba == "Editar":
     linha_id = st.session_state.get("linha_acao_id")
     mod_edicao.render(linha_id)
+
+elif aba == "Historico":
+    linha_id = st.session_state.get("linha_acao_id")
+    mod_historico.render(linha_id)
 
 elif aba == "Excluir":
     numero = st.session_state.get("linha_numero_excluir")

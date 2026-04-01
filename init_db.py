@@ -84,7 +84,7 @@ def init_db():
             "descricao TEXT",
             "codigoVeiculo INTEGER"
         ],
-        "exclusaoLinha": [
+        "ExclusaoLinha": [
             "exclusaoLinhaID TEXT PRIMARY KEY",
             "linha INTEGER",
             "servico TEXT",
@@ -92,7 +92,7 @@ def init_db():
             "dataExclusao TIMESTAMP",
             "linhaID TEXT"
         ],
-        "operador": [
+        "Operador": [
             "operadorID TEXT PRIMARY KEY",
             "cnpj TEXT",
             "nomeFantasia TEXT",
@@ -116,9 +116,81 @@ def init_db():
     print(f"Banco de dados {DB_NAME} inicializado com sucesso.")
     print("Estrutura montada conforme Schema.csv.")
 
-if __name__ == "__main__":
-    # Remover DB antigo para garantir limpeza, se necessário (opcional)
-    # if os.path.exists(DB_NAME):
-    #     os.remove(DB_NAME)
+def populate_from_csv():
+    """Lê o arquivo Schema BQ - TABELAS.csv e popula o banco de dados."""
+    CSV_FILE = "Schema BQ - TABELAS.csv"
+    if not os.path.exists(CSV_FILE):
+        print(f"Erro: Arquivo {CSV_FILE} não encontrado.")
+        return
+
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
     
+    with open(CSV_FILE, mode='r', encoding='utf-8') as f:
+        lines = f.readlines()
+        
+    current_table = None
+    headers = None
+    
+    for line in lines:
+        row = [p.strip() for p in line.split(',')]
+        # Limpar partes vazias no final
+        while row and not row[-1]:
+            row.pop()
+            
+        if not row:
+            # Linha realmente vazia ou apenas vírgulas
+            current_table = None
+            headers = None
+            continue
+            
+        # Se não temos tabela, o primeiro campo útil é o nome da tabela
+        if current_table is None:
+            # Ignorar se for uma linha que parece dados ou headers (tem muitos campos)
+            if len(row) > 1:
+                # Caso especial: se a linha tem dados mas perdemos a tabela, tentamos recuperar?
+                # Geralmente a primeira linha de uma seção é a tabela.
+                continue
+            current_table = row[0]
+            headers = None
+            print(f"Detectada seção para tabela: {current_table}")
+            continue
+            
+        # Se temos tabela mas não headers, esta linha é o header
+        if headers is None:
+            headers = row
+            # Garantir que os nomes dos campos batam com o esperado (opcional)
+            continue
+            
+        # Se temos tabela e headers, esta linha é dado
+        data = row
+        # Ajustar tamanho
+        if len(data) < len(headers):
+            data.extend([''] * (len(headers) - len(data)))
+        elif len(data) > len(headers):
+            data = data[:len(headers)]
+            
+        # Pular linhas de dados que estão vazias (ex: ",,,")
+        if not any(data):
+            continue
+            
+        placeholders = ', '.join(['?'] * len(headers))
+        cols = ', '.join(headers)
+        sql = f"INSERT OR IGNORE INTO {current_table} ({cols}) VALUES ({placeholders})"
+        
+        try:
+            cursor.execute(sql, data)
+        except sqlite3.OperationalError as e:
+            # Se a tabela não existir, ignora (pode ser uma tabela extra no CSV)
+            if "no such table" in str(e):
+                pass
+            else:
+                print(f"Erro ao inserir em {current_table}: {e}")
+                
+    conn.commit()
+    conn.close()
+    print("Banco de dados populado com sucesso a partir do CSV.")
+
+if __name__ == "__main__":
     init_db()
+    populate_from_csv()

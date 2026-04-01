@@ -69,10 +69,18 @@ def render(linha_id: str):
     # 3. Ofícios & Registro
     st.markdown("---")
     st.subheader("📄 Relatório de Ofícios Oficiais")
+    
+    def _of_box(title, of_id):
+        lbl = _obter_label(refs['oficios'], of_id)
+        if of_id:
+             assunto = refs.get('assuntos_oficios', {}).get(of_id, 'Sem assunto')
+             return f"**{title}**\n\n{lbl}\n\n*Assunto:* {assunto}"
+        return f"**{title}**\n\n{lbl}"
+
     c10, c11, c12 = st.columns(3)
-    c10.info(f"**Ofício Principal:**\n\n{_obter_label(refs['oficios'], dados.get('oficio'))}")
-    c11.info(f"**Primeiro Histórico:**\n\n{_obter_label(refs['oficios'], dados.get('oficioprimeiroHistorico'))}")
-    c12.error(f"**Última Alteração:**\n\n{_obter_label(refs['oficios'], dados.get('oficioUltimaAlteracao'))}")
+    c10.info(_of_box("Ofício Principal:", dados.get('oficio')))
+    c11.info(_of_box("Primeiro Histórico:", dados.get('oficioprimeiroHistorico')))
+    c12.error(_of_box("Última Alteração:", dados.get('oficioUltimaAlteracao')))
 
     # 4. Operacional
     st.markdown("---")
@@ -82,19 +90,26 @@ def render(linha_id: str):
         st.markdown("**Dados do Trecho de Ida**")
         st.write(f"- KM Ida: `{dados.get('kmIDA') or '0'}`")
         st.write(f"- Ofício Itin. Ida: `{_obter_label(refs['oficios'], dados.get('itinerarioIdaOficio'))}`")
+        if dados.get('itinerarioIdaOficio'):
+             st.caption(f"Assunto: {refs.get('assuntos_oficios', {}).get(dados.get('itinerarioIdaOficio'))}")
         st.write(f"- Data: `{dados.get('itinerarioIdaData') or '-'}`")
         st.caption(f"**Itinerário:** {dados.get('itinerarioIDA') or '-'}")
     with colB:
         st.markdown("**Dados do Trecho de Volta**")
         st.write(f"- KM Volta: `{dados.get('kmVOLTA') or '0'}`")
         st.write(f"- Ofício Itin. Volta: `{_obter_label(refs['oficios'], dados.get('itinerarioVoltaOficio'))}`")
+        if dados.get('itinerarioVoltaOficio'):
+             st.caption(f"Assunto: {refs.get('assuntos_oficios', {}).get(dados.get('itinerarioVoltaOficio'))}")
         st.write(f"- Data: `{dados.get('itinerarioVoltaData') or '-'}`")
         st.caption(f"**Itinerário:** {dados.get('itinerarioVOLTA') or '-'}")
 
     st.markdown('<br>', unsafe_allow_html=True)
     c13, c14, c15 = st.columns(3)
     c13.write(f"**Tipo Veículo Fronteira:** {_obter_label(refs['tipos_veiculo'], dados.get('frotaTipoVeiculo'))}")
-    c14.write(f"**Últ. Ofício Frota:** {_obter_label(refs['oficios'], dados.get('frotaUltimoOficio'))}")
+    with c14:
+        st.write(f"**Últ. Ofício Frota:** {_obter_label(refs['oficios'], dados.get('frotaUltimoOficio'))}")
+        if dados.get('frotaUltimoOficio'):
+            st.caption(f"Assunto: {refs.get('assuntos_oficios', {}).get(dados.get('frotaUltimoOficio'))}")
     c15.write(f"**Data Ofício Frota:** {dados.get('frotaDataOficio') or '-'}")
     
     # 5. Outros

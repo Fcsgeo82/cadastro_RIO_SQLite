@@ -117,13 +117,21 @@ def render(linha_id: str):
         st.divider()
         st.markdown("#### 📄 Ofícios")
         st.info("ℹ️ A Atualização da *Última Alteração* será feita automaticamente caso novos ofícios sejam associados à frota ou ao itinerário nesta modificação.")
-        col14, col16 = st.columns(2)
+        col14, col15, col16 = st.columns(3)
         with col14:
             oficio_id         = _selectbox("Ofício", refs.get("oficios", {}), dados_bd.get("oficio"))
+            if oficio_id:
+                st.info(f"ℹ️ **Assunto:** {refs.get('assuntos_oficios', {}).get(oficio_id, 'Sem assunto')}")
+        with col15:
+            oficio_prim_hist_id = _selectbox("Ofício — Primeiro Histórico", refs.get("oficios", {}), dados_bd.get("oficioprimeiroHistorico"))
+            if oficio_prim_hist_id:
+                st.caption(f"**Assunto:** {refs.get('assuntos_oficios', {}).get(oficio_prim_hist_id, 'Sem assunto')}")
         with col16:
             # Mostra o status atual
             st.text_input("Ofício — Última Alteração (Automático)", value=_obter_label(refs.get("oficios", {}), dados_bd.get("oficioUltimaAlteracao")) or "-", disabled=True)
             oficio_ult_alt_id = dados_bd.get("oficioUltimaAlteracao")
+            if oficio_ult_alt_id:
+                 st.caption(f"**Assunto:** {refs.get('assuntos_oficios', {}).get(oficio_ult_alt_id, 'Sem assunto')}")
 
         # ── Frota ────────────────────────────────────────────────
         st.divider()
@@ -133,6 +141,8 @@ def render(linha_id: str):
             frota_tipo_veiculo_id  = _selectbox("Tipo de Veículo da Frota", refs.get("tipos_veiculo", {}), dados_bd.get("frotaTipoVeiculo"))
         with col18:
             frota_ultimo_oficio_id = _selectbox("Último Ofício da Frota", refs.get("oficios", {}), dados_bd.get("frotaUltimoOficio"))
+            if frota_ultimo_oficio_id:
+                st.caption(f"**Assunto:** {refs.get('assuntos_oficios', {}).get(frota_ultimo_oficio_id, 'Sem assunto')}")
         with col19:
             dtf = None
             if dados_bd.get("frotaDataOficio"):
@@ -148,6 +158,8 @@ def render(linha_id: str):
             itinerarioIDA        = st.text_area("Itinerário IDA", height=80, value=dados_bd.get("itinerarioIDA") or "")
         with col21:
             itIda_oficio_id      = _selectbox("Ofício do Itin. IDA", refs.get("oficios", {}), dados_bd.get("itinerarioIdaOficio"))
+            if itIda_oficio_id:
+                 st.caption(f"**Assunto:** {refs.get('assuntos_oficios', {}).get(itIda_oficio_id, 'Sem assunto')}")
         with col22:
             dti = None
             if dados_bd.get("itinerarioIdaData"):
@@ -160,6 +172,8 @@ def render(linha_id: str):
             itinerarioVOLTA      = st.text_area("Itinerário VOLTA", height=80, value=dados_bd.get("itinerarioVOLTA") or "")
         with col24:
             itVolta_oficio_id    = _selectbox("Ofício do Itin. VOLTA", refs.get("oficios", {}), dados_bd.get("itinerarioVoltaOficio"))
+            if itVolta_oficio_id:
+                 st.caption(f"**Assunto:** {refs.get('assuntos_oficios', {}).get(itVolta_oficio_id, 'Sem assunto')}")
         with col25:
             dtv = None
             if dados_bd.get("itinerarioVoltaData"):
@@ -189,20 +203,17 @@ def render(linha_id: str):
         
         oficios_alterados = []
         
-        # Só conta como alteração pro "Último Ofício" se o banco já tinha algum ofício salvo (ou seja, é a 2ª vez) ou se o usuário deseja sempre sobrescrever iterativamente.
-        # O Pedido: "deve ser preenchido quando os campos de ofício das seções de itinerário e frota forem preenchidos pela segunda vez, ou seja, quando alterarmos uma linha"
-        
-        if frota_ultimo_oficio_id and str(frota_ultimo_oficio_id) != str(dados_bd.get("frotaUltimoOficio")):
-            if dados_bd.get("frotaUltimoOficio"): # Era preenchido na 1a vez
-                oficios_alterados.append(str(frota_ultimo_oficio_id))
+        if frota_ultimo_oficio_id and str(frota_ultimo_oficio_id) != str(dados_bd.get("frotaUltimoOficio") or ""):
+            oficios_alterados.append(str(frota_ultimo_oficio_id))
                 
-        if itIda_oficio_id and str(itIda_oficio_id) != str(dados_bd.get("itinerarioIdaOficio")):
-            if dados_bd.get("itinerarioIdaOficio"):
-                oficios_alterados.append(str(itIda_oficio_id))
+        if itIda_oficio_id and str(itIda_oficio_id) != str(dados_bd.get("itinerarioIdaOficio") or ""):
+            oficios_alterados.append(str(itIda_oficio_id))
                 
-        if itVolta_oficio_id and str(itVolta_oficio_id) != str(dados_bd.get("itinerarioVoltaOficio")):
-            if dados_bd.get("itinerarioVoltaOficio"):
-                oficios_alterados.append(str(itVolta_oficio_id))
+        if itVolta_oficio_id and str(itVolta_oficio_id) != str(dados_bd.get("itinerarioVoltaOficio") or ""):
+            oficios_alterados.append(str(itVolta_oficio_id))
+            
+        if oficio_id and str(oficio_id) != str(dados_bd.get("oficio") or ""):
+            oficios_alterados.append(str(oficio_id))
 
         if oficios_alterados:
             # Achar o ofício mais recente entre os alterados
@@ -226,7 +237,7 @@ def render(linha_id: str):
             "vista":                    vista,
             "areaOperacional":          area_op_id,
             "oficio":                   oficio_id,
-            "oficioprimeiroHistorico":  dados_bd.get("oficioprimeiroHistorico"), # Nunca muda!
+            "oficioprimeiroHistorico":  oficio_prim_hist_id,
             "oficioUltimaAlteracao":    oficio_ult_alt_id,
             "tipoSistema":              tipo_sistema_id,
             "kmIDA":                    kmIDA if kmIDA else None,

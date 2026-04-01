@@ -124,17 +124,28 @@ def carregar_grupamentos() -> pd.DataFrame:
 
 
 def carregar_oficios() -> pd.DataFrame:
-    # No SQLite use || para concatenar
-    df = _query_df(f"""
-        SELECT oficioID,
-               (CAST(numeroOficio AS TEXT) || ' — ' || COALESCE(assunto, '')) AS label
+    df = _query_df("""
+        SELECT oficioID, numeroOficio, dataOficio
         FROM Oficio
-        ORDER BY numeroOficio DESC
+        ORDER BY dataOficio DESC, numeroOficio DESC
     """)
     if df.empty:
         return df
-    return df.rename(columns={"oficioID": "id"})
+        
+    df['numeroOficio'] = pd.to_numeric(df['numeroOficio'], errors='coerce').fillna(0).astype(int)
+    df['ano'] = pd.to_datetime(df['dataOficio'], errors='coerce').dt.strftime('%Y').fillna('XXXX')
+    
+    df['label'] = "Ofício SMTR-A " + df['numeroOficio'].apply(lambda x: f"{x:02d}") + "/" + df['ano']
+    
+    return df[['oficioID', 'label']].rename(columns={"oficioID": "id"})
 
+def carregar_assuntos_oficios() -> dict:
+    """Retorna um dicionário mapeando oficioID -> assunto."""
+    df = _query_df("SELECT oficioID, assunto FROM Oficio")
+    if df.empty:
+        return {}
+    df['assunto'] = df['assunto'].fillna("Sem assunto")
+    return dict(zip(df['oficioID'], df['assunto']))
 
 # Função genérica para montar dict {label -> id} usado nos selectboxes
 def opcoes(df: pd.DataFrame) -> dict:

@@ -9,7 +9,7 @@ from db import (
     carregar_servicos, carregar_operadores,
     carregar_areas_operacionais, carregar_areas_geograficas,
     carregar_tipos_sistema, carregar_tipos_veiculo,
-    carregar_parametros, carregar_grupamentos, carregar_oficios,
+    carregar_parametros, carregar_grupamentos, carregar_oficios, carregar_assuntos_oficios
 )
 
 
@@ -26,6 +26,7 @@ def _carregar_todas_referencias():
         "parametros":      opcoes(carregar_parametros()),
         "grupamentos":     opcoes(carregar_grupamentos()),
         "oficios":         opcoes(carregar_oficios()),
+        "assuntos_oficios": carregar_assuntos_oficios(),
     }
 
 
@@ -97,12 +98,11 @@ def render():
         # ── Ofícios ──────────────────────────────────────────────
         st.divider()
         st.markdown("#### 📄 Ofícios")
+        st.info("ℹ️ O Ofício selecionado abaixo será registrado automaticamente como o **Primeiro Histórico** e como a **Última Alteração** desta linha inicialmente.")
 
-        col14, col16 = st.columns(2)
-        with col14:
-            oficio_id              = _selectbox("Ofício", refs["oficios"])
-        with col16:
-            oficio_ult_alt_id      = _selectbox("Ofício — Última Alteração", refs["oficios"])
+        oficio_id = _selectbox("Ofício Principal", refs["oficios"])
+        if oficio_id:
+            st.info(f"ℹ️ **Assunto:** {refs['assuntos_oficios'].get(oficio_id, 'Sem assunto')}")
 
         # ── Frota ────────────────────────────────────────────────
         st.divider()
@@ -113,6 +113,8 @@ def render():
             frota_tipo_veiculo_id  = _selectbox("Tipo de Veículo da Frota", refs["tipos_veiculo"])
         with col18:
             frota_ultimo_oficio_id = _selectbox("Último Ofício da Frota", refs["oficios"])
+            if frota_ultimo_oficio_id:
+                st.caption(f"**Assunto:** {refs['assuntos_oficios'].get(frota_ultimo_oficio_id, 'Sem assunto')}")
         with col19:
             frotaDataOficio = st.date_input("Data do Ofício da Frota", value=None)
 
@@ -126,6 +128,8 @@ def render():
                                                  placeholder="Descrição do itinerário de ida")
         with col21:
             itIda_oficio_id      = _selectbox("Ofício do Itin. IDA", refs["oficios"])
+            if itIda_oficio_id:
+                st.caption(f"**Assunto:** {refs['assuntos_oficios'].get(itIda_oficio_id, 'Sem assunto')}")
         with col22:
             itIda_data           = st.date_input("Data Itin. IDA", value=None)
 
@@ -135,6 +139,8 @@ def render():
                                                  placeholder="Descrição do itinerário de volta")
         with col24:
             itVolta_oficio_id    = _selectbox("Ofício do Itin. VOLTA", refs["oficios"])
+            if itVolta_oficio_id:
+                st.caption(f"**Assunto:** {refs['assuntos_oficios'].get(itVolta_oficio_id, 'Sem assunto')}")
         with col25:
             itVolta_data         = st.date_input("Data Itin. VOLTA", value=None)
 
@@ -174,7 +180,7 @@ def render():
             "areaOperacional":          area_op_id,
             "oficio":                   oficio_id,
             "oficioprimeiroHistorico":  oficio_id,
-            "oficioUltimaAlteracao":    oficio_ult_alt_id,
+            "oficioUltimaAlteracao":    oficio_id,
             "tipoSistema":              tipo_sistema_id,
             "kmIDA":                    kmIDA,
             "kmVOLTA":                  kmVOLTA,
