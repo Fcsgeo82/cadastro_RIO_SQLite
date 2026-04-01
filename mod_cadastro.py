@@ -98,11 +98,9 @@ def render():
         st.divider()
         st.markdown("#### 📄 Ofícios")
 
-        col14, col15, col16 = st.columns(3)
+        col14, col16 = st.columns(2)
         with col14:
             oficio_id              = _selectbox("Ofício", refs["oficios"])
-        with col15:
-            oficio_primeiro_id     = _selectbox("Ofício — Primeiro Histórico", refs["oficios"])
         with col16:
             oficio_ult_alt_id      = _selectbox("Ofício — Última Alteração", refs["oficios"])
 
@@ -175,7 +173,7 @@ def render():
             "vista":                    vista,
             "areaOperacional":          area_op_id,
             "oficio":                   oficio_id,
-            "oficioprimeiroHistorico":  oficio_primeiro_id,
+            "oficioprimeiroHistorico":  oficio_id,
             "oficioUltimaAlteracao":    oficio_ult_alt_id,
             "tipoSistema":              tipo_sistema_id,
             "kmIDA":                    kmIDA,

@@ -79,15 +79,49 @@ def render():
         total = len(df)
         st.markdown(f"**{total}** {'linha encontrada' if total == 1 else 'linhas encontradas'}")
 
-        st.dataframe(
+        evento = st.dataframe(
             df,
             use_container_width=True,
             hide_index=True,
+            on_select="rerun",
+            selection_mode="single-row",
             column_config={
+                "linhaID": None,  # Oculta o ID da UI
                 "KM Ida":   st.column_config.NumberColumn("KM Ida",   format="%.1f km"),
                 "KM Volta": st.column_config.NumberColumn("KM Volta", format="%.1f km"),
             }
         )
+
+        # ── Ações Customizadas para a Linha Selecionada ──────────
+        if evento and len(evento.selection.rows) > 0:
+            idx = evento.selection.rows[0]
+            linha_selecionada = df.iloc[idx]
+            
+            if "linhaID" not in linha_selecionada:
+                st.warning("⚠️ Cache da sessão desatualizado. Por favor, clique em **Listar Todas** ou **Buscar** novamente para ativar as ações!")
+            else:
+                linha_id = linha_selecionada["linhaID"]
+    
+                st.markdown("---")
+                st.markdown(f"**Ações para Linha: {linha_selecionada.get('Número', '')}**")
+    
+                col_btn1, col_btn2, col_btn3, _ = st.columns([1.5, 1.5, 1.5, 5])
+                with col_btn1:
+                    if st.button("👁️ Ver Ficha", use_container_width=True, type="primary"):
+                        st.session_state["linha_acao_id"] = linha_id
+                        st.session_state["aba_ativa"] = "Ficha"
+                        st.rerun()
+                with col_btn2:
+                    if st.button("✏️ Alterar", use_container_width=True):
+                        st.session_state["linha_acao_id"] = linha_id
+                        st.session_state["aba_ativa"] = "Editar"
+                        st.rerun()
+                with col_btn3:
+                    if st.button("🗑️ Excluir", use_container_width=True):
+                        st.session_state["linha_acao_id"] = linha_id
+                        st.session_state["linha_numero_excluir"] = linha_selecionada.get('Número', '')
+                        st.session_state["aba_ativa"] = "Excluir"
+                        st.rerun()
 
         # ── Exportar CSV ─────────────────────────────────────────
         buf = io.StringIO()

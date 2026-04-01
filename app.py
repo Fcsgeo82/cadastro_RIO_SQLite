@@ -8,6 +8,8 @@ import streamlit as st
 import mod_cadastro
 import mod_cadastro_ref
 import mod_consulta
+import mod_ficha
+import mod_edicao
 
 # --- Configuração da página ---
 st.set_page_config(
@@ -19,15 +21,19 @@ st.set_page_config(
 # --- CSS customizado ---
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
 
 html, body, [class*="css"] {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
+}
+
+h1, h2, h3, .stTabs [data-baseweb="tab"], .stButton > button {
+    font-family: 'Manrope', sans-serif !important;
 }
 
 h1, h2, h3 {
-    font-family: 'Syne', sans-serif !important;
-    font-weight: 700 !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.03em !important;
 }
 
 /* Header */
@@ -58,7 +64,6 @@ h1, h2, h3 {
     border-bottom: 2px solid #dde3ec;
 }
 .stTabs [data-baseweb="tab"] {
-    font-family: 'Syne', sans-serif;
     font-weight: 600;
     font-size: 0.95rem;
     padding: 10px 22px;
@@ -75,7 +80,6 @@ h1, h2, h3 {
     background: #1a3a5c;
     border: none;
     border-radius: 8px;
-    font-family: 'Syne', sans-serif;
     font-weight: 600;
     padding: 10px 24px;
     transition: background 0.2s;
@@ -121,21 +125,62 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# --- Abas principais ---
-aba_cadastro, aba_ref, aba_consulta = st.tabs([
-    "➕  Cadastrar Linha",
-    "🗂️  Tabelas de Referência",
-    "🔍  Consultar Linhas",
-])
+# --- Rotas Dinâmicas ---
+aba = st.session_state.get("aba_ativa", "Principal")
 
-with aba_cadastro:
-    mod_cadastro.render()
+if aba == "Principal":
+    # --- Abas principais ---
+    aba_consulta, aba_cadastro, aba_ref = st.tabs([
+        "🔍  Consultar Linhas",
+        "➕  Cadastrar Linha",
+        "🗂️  Tabelas de Referência",
+    ])
 
-with aba_ref:
-    mod_cadastro_ref.render()
+    with aba_consulta:
+        mod_consulta.render()
 
-with aba_consulta:
-    mod_consulta.render()
+    with aba_cadastro:
+        mod_cadastro.render()
+
+    with aba_ref:
+        mod_cadastro_ref.render()
+
+elif aba == "Ficha":
+    linha_id = st.session_state.get("linha_acao_id")
+    mod_ficha.render(linha_id)
+
+elif aba == "Editar":
+    linha_id = st.session_state.get("linha_acao_id")
+    mod_edicao.render(linha_id)
+
+elif aba == "Excluir":
+    numero = st.session_state.get("linha_numero_excluir")
+    linha_id = st.session_state.get("linha_acao_id")
+    
+    st.markdown(f"### 🗑️ Excluir Linha {numero}")
+    st.warning("Tem certeza que deseja excluir esta linha permanentemente? Esta ação não pode ser desfeita.")
+    
+    col_yes, col_no = st.columns(2)
+    with col_yes:
+        if st.button("✅ Confirmar Exclusão", type="primary", use_container_width=True):
+            from db import excluir_linha
+            sucesso, msg = excluir_linha(linha_id)
+            if sucesso:
+                st.session_state["_mensagem_sucesso"] = msg
+            else:
+                st.session_state["_mensagem_erro"] = msg
+            st.session_state["aba_ativa"] = "Principal"
+            st.rerun()
+    with col_no:
+        if st.button("❌ Cancelar", use_container_width=True):
+            st.session_state["aba_ativa"] = "Principal"
+            st.rerun()
+
+# ── Feedback global ──
+if "_mensagem_sucesso" in st.session_state:
+    st.success(f"✅ {st.session_state.pop('_mensagem_sucesso')}")
+if "_mensagem_erro" in st.session_state:
+    st.error(f"❌ {st.session_state.pop('_mensagem_erro')}")
 
 # --- Sidebar info ---
 with st.sidebar:

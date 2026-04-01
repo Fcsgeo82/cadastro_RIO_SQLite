@@ -168,7 +168,7 @@ def inserir_linha(dados: dict) -> tuple[bool, str]:
         "kmIDA":                 float(dados["kmIDA"]) if dados.get("kmIDA") else None,
         "kmVOLTA":               float(dados["kmVOLTA"]) if dados.get("kmVOLTA") else None,
         "areaGeografica":        dados.get("areaGeografica") or None,
-        "classificacaoEspacial": dados.get("classificacaoEspacial", "").strip() or None,
+        "classificacaoEspacial": (dados.get("classificacaoEspacial") or "").strip() or None,
         "parametro":             dados.get("parametro") or None,
         "grupamentoBRS":         dados.get("grupamentoBRS"),
         "frotaTipoVeiculo":      dados.get("frotaTipoVeiculo") or None,
@@ -233,6 +233,7 @@ def consultar_linhas(
     
     query = f"""
         SELECT
+            l.linhaID,
             l.numeroLinha                                                       AS `Número`,
             l.vista                                                             AS `Vista`,
             s.descricao                                                         AS `Serviço`,
@@ -274,3 +275,86 @@ def consultar_linhas(
         pass
 
     return df
+
+# ------------------------------------------------------------------
+# CRUD - Linha (Leitura Única, Atualização, Exclusão)
+# ------------------------------------------------------------------
+
+def obter_linha_por_id(linha_id: str) -> dict:
+    """Retorna os dados completos de uma linha pelo ID em formato de dicionário."""
+    try:
+        conn = get_connection()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM Linha WHERE linhaID = ?", (linha_id,))
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            return dict(row)
+        return {}
+    except Exception as e:
+        print(f"Erro ao obter linha: {e}")
+        return {}
+
+def atualizar_linha(linha_id: str, dados: dict) -> tuple[bool, str]:
+    """Atualiza uma linha existente e atualiza_ultimaAtualizacao."""
+    conn = get_connection()
+    agora = datetime.now(tz=timezone.utc).isoformat()
+    
+    # Criar dict de atualização. Não atualizamos linhaID nem dataCadastro.
+    row = {
+        "numeroLinha":           dados.get("numeroLinha", "").strip(),
+        "dataCriacaoLinha":      str(dados["dataCriacaoLinha"]) if dados.get("dataCriacaoLinha") else None,
+        "servico":               dados.get("servico") or None,
+        "operador":              dados.get("operador") or None,
+        "vista":                 dados.get("vista", "").strip() or None,
+        "areaOperacional":       dados.get("areaOperacional") or None,
+        "oficio":                dados.get("oficio") or None,
+        "oficioprimeiroHistorico": dados.get("oficioprimeiroHistorico") or None,
+        "oficioUltimaAlteracao": dados.get("oficioUltimaAlteracao") or None,
+        "tipoSistema":           dados.get("tipoSistema") or None,
+        "kmIDA":                 float(dados["kmIDA"]) if dados.get("kmIDA") else None,
+        "kmVOLTA":               float(dados["kmVOLTA"]) if dados.get("kmVOLTA") else None,
+        "areaGeografica":        dados.get("areaGeografica") or None,
+        "classificacaoEspacial": (dados.get("classificacaoEspacial") or "").strip() or None,
+        "parametro":             dados.get("parametro") or None,
+        "grupamentoBRS":         dados.get("grupamentoBRS"),
+        "frotaTipoVeiculo":      dados.get("frotaTipoVeiculo") or None,
+        "frotaUltimoOficio":     dados.get("frotaUltimoOficio") or None,
+        "frotaDataOficio":       dados.get("frotaDataOficio") or None,
+        "itinerarioIDA":         dados.get("itinerarioIDA", "").strip() or None,
+        "itinerarioIdaOficio":   dados.get("itinerarioIdaOficio") or None,
+        "itinerarioIdaData":     dados.get("itinerarioIdaData") or None,
+        "itinerarioVOLTA":       dados.get("itinerarioVOLTA", "").strip() or None,
+        "itinerarioVoltaOficio": dados.get("itinerarioVoltaOficio") or None,
+        "itinerarioVoltaData":   dados.get("itinerarioVoltaData") or None,
+        "observacao":            dados.get("observacao", "").strip() or None,
+        "ultimaAtualizacao":     agora,
+    }
+
+    set_clause = ", ".join([f"{k} = ?" for k in row.keys()])
+    values = list(row.values())
+    values.append(linha_id)
+    
+    sql = f"UPDATE Linha SET {set_clause} WHERE linhaID = ?"
+    
+    try:
+        conn.execute(sql, values)
+        conn.commit()
+        conn.close()
+        return True, f"Linha {row['numeroLinha']} atualizada com sucesso!"
+    except Exception as e:
+        conn.close()
+        return False, f"Erro ao atualizar no SQLite: {e}"
+
+def excluir_linha(linha_id: str) -> tuple[bool, str]:
+    """Exclui uma linha pelo ID."""
+    conn = get_connection()
+    try:
+        conn.execute("DELETE FROM Linha WHERE linhaID = ?", (linha_id,))
+        conn.commit()
+        conn.close()
+        return True, "Linha excluída com sucesso!"
+    except Exception as e:
+        conn.close()
+        return False, f"Erro ao excluir linha: {e}"
