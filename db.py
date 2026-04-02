@@ -4,7 +4,10 @@
 # =============================================================
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+import bcrypt
+import smtplib
+from email.mime.text import MIMEText
 
 import pandas as pd
 import sqlite3
@@ -372,3 +375,117 @@ def excluir_linha(linha_id: str) -> tuple[bool, str]:
     except Exception as e:
         conn.close()
         return False, f"Erro ao excluir linha: {e}"
+
+
+def _exec(sql: str, params: list = None) -> bool:
+    """Executa comando non-query (INSERT/UPDATE/DELETE)."""
+    conn = get_connection()
+    try:
+        conn.execute(sql, params or [])
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"DB exec error: {e}")
+        conn.close()
+        return False
+
+
+def verify_login(username: str, password: str) -> dict:
+    """Verifica login com rate limiting. Retorna user dict ou {}."""
+    df = _query_df("SELECT * FROM Usuarios WHERE username = ?", [username])
+    if df.empty:
+        return {}
+    user_row = df.iloc[0]
+    
+    # Check lockout
+    lockout_until = user_row.get("lockout_until")
+    if lockout_until:
+        lockout_time = datetime.fromisoformat(lockout_until.replace('Z', '+00:00'))
+        if datetime.now(timezone.utc) < lockout_time:
+            remaining = (lockout_time - datetime.now(timezone.utc)).seconds // 60
+            return {"error": "locked", "message": f"Conta bloqueada. Tente novamente em {remaining} minuto(s)."}
+    
+    # Verify password
+    if bcrypt.checkpw(password.encode(), user_row["password_hash"].encode()):
+        # Reset failed attempts on success
+        _exec("UPDATE Usuarios SET failed_attempts = 0, lockout_until = NULL WHERE userID = ?", [user_row["userID"]])
+        user_dict = user_row.to_dict()
+        user_dict.pop("password_hash", None)
+        return user_dict
+    
+    # Increment failed attempts
+    failed = user_row.get("failed_attempts", 0) + 1
+    if failed >= 5:
+        lockout = datetime.now(timezone.utc) + timedelta(minutes=15)
+        _exec("UPDATE Usuarios SET failed_attempts = ?, lockout_until = ? WHERE userID = ?", [failed, lockout.isoformat(), user_row["userID"]])
+        return {"error": "locked", "message": "Muitas tentativas falhas. Conta bloqueada por 15 minutos."}
+    else:
+        _exec("UPDATE Usuarios SET failed_attempts = ? WHERE userID = ?", [failed, user_row["userID"]])
+        return {"error": "failed", "message": f"Usuário ou senha incorretos. Tentativas: {failed}/5"}
+
+
+def validate_password_strength(password: str) -> tuple[bool, str]:
+    """Valida força da senha: mínimo 8 chars, 1 maiúscula, 1 número, 1 símbolo."""
+    if len(password) < 8:
+        return False, "Senha deve ter pelo menos 8 caracteres."
+    if not any(c.isupper() for c in password):
+        return False, "Senha deve conter pelo menos 1 letra maiúscula."
+    if not any(c.isdigit() for c in password):
+        return False, "Senha deve conter pelo menos 1 número."
+    if not any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in password):
+        return False, "Senha deve conter pelo menos 1 símbolo."
+    return True, "OK"
+
+
+def generate_reset_token(username: str) -> tuple[bool, str]:
+    """Gera token reset para user, retorna (success, token or msg)."""
+    df = _query_df("SELECT userID FROM Usuarios WHERE username = ?", [username])
+    if df.empty:
+        return False, "User not found"
+    user_id = df.iloc[0]["userID"]
+    token = str(uuid.uuid4())
+    expiry = datetime.now(timezone.utc) + timedelta(hours=24)
+    expiry_str = expiry.isoformat()
+    if _exec("UPDATE Usuarios SET reset_token = ?, reset_expiry = ? WHERE userID = ?", [token, expiry_str, user_id]):
+        return True, token
+    return False, "Token generation failed"
+
+
+def validate_reset_token(token: str) -> str:
+    """Valida token, retorna userID or empty string."""
+    now_str = datetime.now(timezone.utc).isoformat()
+    df = _query_df("SELECT userID FROM Usuarios WHERE reset_token = ? AND reset_expiry > ?", [token, now_str])
+    if df.empty:
+        return ""
+    return df.iloc[0]["userID"]
+
+
+def reset_password(user_id: str, new_password: str) -> tuple[bool, str]:
+    """Reseta senha, limpa token."""
+    new_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
+    if _exec("UPDATE Usuarios SET password_hash = ?, reset_token = NULL, reset_expiry = NULL WHERE userID = ?", [new_hash, user_id]):
+        return True, "Password updated"
+    return False, "Reset failed"
+
+
+def send_reset_email(email: str, token: str, email_user: str, email_pass: str, app_url: str) -> bool:
+    """Envia email de reset usando Gmail creds."""
+    try:
+        msg = MIMEText(f"Clique para resetar senha: {app_url}/?reset_token={token}\nExpira em 24h.")
+        msg['Subject'] = 'Reset Senha - Sistema Linhas RIO'
+        msg['From'] = email_user
+        msg['To'] = email
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(email_user, email_pass)
+            server.send_message(msg)
+        return True
+    except Exception as e:
+        print(f"Email send error: {e}")
+        return False
+
+
+def get_user_email(username: str) -> str:
+    """Pega email do user."""
+    df = _query_df("SELECT email FROM Usuarios WHERE username = ?", [username])
+    return df.iloc[0]["email"] if not df.empty else ""

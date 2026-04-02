@@ -1,5 +1,8 @@
 import sqlite3
 import os
+import bcrypt
+import uuid
+from datetime import datetime, timezone
 
 DB_NAME = "database_RIO.db"
 
@@ -93,14 +96,25 @@ def init_db():
             "dataExclusao TIMESTAMP",
             "linhaID TEXT"
         ],
-        "Operador": [
-            "operadorID TEXT PRIMARY KEY",
-            "cnpj TEXT",
-            "nomeFantasia TEXT",
-            "razaoSocial TEXT",
-            "termo TEXT",
-            "dataCadastro TIMESTAMP"
-        ]
+"Operador": [
+    "operadorID TEXT PRIMARY KEY",
+    "cnpj TEXT",
+    "nomeFantasia TEXT",
+    "razaoSocial TEXT",
+    "termo TEXT",
+    "dataCadastro TIMESTAMP"
+],
+"Usuarios": [
+    "userID TEXT PRIMARY KEY",
+    "username TEXT UNIQUE",
+    "password_hash TEXT",
+    "role TEXT",
+    "email TEXT",
+    "reset_token TEXT",
+    "reset_expiry TEXT",
+    "failed_attempts INTEGER DEFAULT 0",
+    "lockout_until TEXT"
+]
     }
 
     print(f"Inicializando banco de dados: {DB_NAME}")
@@ -110,6 +124,37 @@ def init_db():
         create_sql = f"CREATE TABLE IF NOT EXISTS {table_name} (\n    {col_defs}\n);"
         print(f"Criando tabela: {table_name}")
         cursor.execute(create_sql)
+    
+    # Inicializar usuários admin se não existirem
+    cursor.execute("SELECT COUNT(*) FROM Usuarios")
+    if cursor.fetchone()[0] == 0:
+        print("Inserindo usuários iniciais...")
+        
+        users = [
+            {
+                "username": "admin",
+                "password": "admin123",
+                "role": "admin",
+                "email": "admin@example.com"
+            },
+            {
+                "username": "user",
+                "password": "user123",
+                "role": "user",
+                "email": "user@example.com"
+            }
+        ]
+        
+        for u in users:
+            user_id = str(uuid.uuid4())
+            pwd_hash = bcrypt.hashpw(u["password"].encode(), bcrypt.gensalt()).decode()
+            created = datetime.now(timezone.utc).isoformat()
+            cursor.execute("""
+                INSERT INTO Usuarios (userID, username, password_hash, role, email, reset_token, reset_expiry)
+                VALUES (?, ?, ?, ?, ?, NULL, NULL)
+            """, (user_id, u["username"], pwd_hash, u["role"], u["email"]))
+        
+        print("Usuários iniciais inseridos.")
     
     conn.commit()
     conn.close()
