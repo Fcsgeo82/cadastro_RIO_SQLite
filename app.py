@@ -72,7 +72,7 @@ if not st.session_state.get('logged_in'):
             password = st.text_input("Senha", type="password")
             col_btn1, col_btn2 = st.columns([4,1])
             with col_btn1:
-                submitted = st.form_submit_button("Entrar", type="primary", use_container_width=True)
+                submitted = st.form_submit_button("Entrar", type="primary", width='stretch')
             if submitted:
                 user = db.verify_login(username, password)
                 if user and "error" not in user:
@@ -88,7 +88,7 @@ if not st.session_state.get('logged_in'):
         username = st.text_input("Usuário")
         col_f1, col_f2 = st.columns([4,1])
         with col_f1:
-            if st.button("Enviar Link de Reset", type="secondary", use_container_width=True):
+            if st.button("Enviar Link de Reset", type="secondary", width='stretch'):
                 success, result = db.generate_reset_token(username)
                 if success:
                     email = db.get_user_email(username)
@@ -280,7 +280,7 @@ elif aba == "Excluir":
     
     col_yes, col_no = st.columns(2)
     with col_yes:
-        if st.button("✅ Confirmar Exclusão", type="primary", use_container_width=True):
+        if st.button("✅ Confirmar Exclusão", type="primary", width='stretch'):
             from db import excluir_linha
             sucesso, msg = excluir_linha(linha_id)
             if sucesso:
@@ -290,7 +290,7 @@ elif aba == "Excluir":
             st.session_state["aba_ativa"] = "Principal"
             st.rerun()
     with col_no:
-        if st.button("❌ Cancelar", use_container_width=True):
+        if st.button("❌ Cancelar", width='stretch'):
             st.session_state["aba_ativa"] = "Principal"
             st.rerun()
 

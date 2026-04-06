@@ -156,7 +156,7 @@ def render():
         # ── Submit ───────────────────────────────────────────────
         submitted = st.form_submit_button(
             "💾 Salvar Linha",
-            use_container_width=True,
+            width='stretch',
             type="primary"
         )
 

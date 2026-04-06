@@ -34,7 +34,7 @@ def render(linha_id: str):
     # --- Container Controle ---
     col_back, col_print, _ = st.columns([1.5, 2.5, 6])
     with col_back:
-        if st.button("⬅️ Voltar", use_container_width=True):
+        if st.button("⬅️ Voltar", width='stretch'):
             st.session_state["aba_ativa"] = "Principal"
             st.rerun()
     with col_print:

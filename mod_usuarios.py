@@ -38,7 +38,7 @@ def render():
             with col_role:
                 novo_role = st.selectbox("Permissão", ["user", "editor", "admin"])
             
-            submitted = st.form_submit_button("Cadastrar Usuário", type="primary", use_container_width=True)
+            submitted = st.form_submit_button("Cadastrar Usuário", type="primary", width='stretch')
             
             if submitted:
                 if not novo_username or not novo_email or not nova_senha:
@@ -78,7 +78,7 @@ def render():
         if df_users.empty:
             st.info("Nenhum usuário cadastrado.")
         else:
-            st.dataframe(df_users, use_container_width=True, hide_index=True)
+            st.dataframe(df_users, width='stretch', hide_index=True)
             
             st.markdown("---")
             st.markdown("#### Alterar Senha de Usuário")
@@ -90,7 +90,7 @@ def render():
                 with col_nova:
                     nova_senha_alt = st.text_input("Nova Senha", type="password")
                 
-                alt_senha_submit = st.form_submit_button("Alterar Senha", type="primary", use_container_width=True)
+                alt_senha_submit = st.form_submit_button("Alterar Senha", type="primary", width='stretch')
                 
                 if alt_senha_submit:
                     if not nova_senha_alt:
@@ -120,7 +120,7 @@ def render():
                 with col_del:
                     user_excluir = st.selectbox("Selecione o usuário a excluir", df_users["username"].tolist())
                 with col_btn:
-                    excl_submit = st.form_submit_button("Excluir", type="primary", use_container_width=True)
+                    excl_submit = st.form_submit_button("Excluir", type="primary", width='stretch')
                 
                 if excl_submit:
                     if user_excluir == st.session_state.get("user"):

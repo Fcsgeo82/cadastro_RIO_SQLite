@@ -52,7 +52,7 @@ def render(linha_id: str):
     # Cabeçalho da edição
     col_back, _ = st.columns([1, 8])
     with col_back:
-        if st.button("⬅️ Voltar / Cancelar", use_container_width=True):
+        if st.button("⬅️ Voltar / Cancelar", width='stretch'):
             st.session_state["aba_ativa"] = "Principal"
             st.rerun()
 
@@ -190,7 +190,7 @@ def render(linha_id: str):
         observacao = st.text_area("📝 Observação", height=80, value=dados_bd.get("observacao") or "")
 
         # ── Submit ───────────────────────────────────────────────
-        submitted = st.form_submit_button("💾 Salvar Alterações", use_container_width=True, type="primary")
+        submitted = st.form_submit_button("💾 Salvar Alterações", width='stretch', type="primary")
 
     if submitted:
         obrigatorios = {"Número": numeroLinha, "Vista": vista, "Data Criação": dataCriacaoLinha, "Serviço": servico_label, "Operador": operador_label}

@@ -46,9 +46,9 @@ def render():
 
     col_b1, col_b2, _ = st.columns([1, 1, 4])
     with col_b1:
-        buscar       = st.button("🔍 Buscar", type="primary", use_container_width=True)
+        buscar       = st.button("🔍 Buscar", type="primary", width='stretch')
     with col_b2:
-        listar_todas = st.button("📋 Listar Todas", use_container_width=True)
+        listar_todas = st.button("📋 Listar Todas", width='stretch')
 
     st.divider()
 
@@ -81,7 +81,7 @@ def render():
 
         evento = st.dataframe(
             df,
-            use_container_width=True,
+            width='stretch',
             hide_index=True,
             on_select="rerun",
             selection_mode="single-row",
@@ -110,27 +110,27 @@ def render():
                 col_btn1, col_btn2, col_btn3, col_btn4 = st.columns([1.5, 1.5, 1.6, 1.5])
                 
                 with col_btn1:
-                    if st.button("👁️ Ver Ficha", use_container_width=True, type="primary"):
+                    if st.button("👁️ Ver Ficha", width='stretch', type="primary"):
                         st.session_state["linha_acao_id"] = linha_id
                         st.session_state["aba_ativa"] = "Ficha"
                         st.rerun()
                 
                 if user_role == "admin":
                     with col_btn2:
-                        if st.button("✏️ Alterar", use_container_width=True):
+                        if st.button("✏️ Alterar", width='stretch'):
                             st.session_state["linha_acao_id"] = linha_id
                             st.session_state["aba_ativa"] = "Editar"
                             st.rerun()
                 
                 with col_btn3:
-                    if st.button("🕰️ Histórico", use_container_width=True):
+                    if st.button("🕰️ Histórico", width='stretch'):
                         st.session_state["linha_acao_id"] = linha_id
                         st.session_state["aba_ativa"] = "Historico"
                         st.rerun()
                 
                 if user_role == "admin":
                     with col_btn4:
-                        if st.button("🗑️ Excluir", use_container_width=True):
+                        if st.button("🗑️ Excluir", width='stretch'):
                             st.session_state["linha_acao_id"] = linha_id
                             st.session_state["linha_numero_excluir"] = linha_selecionada.get('Número', '')
                             st.session_state["aba_ativa"] = "Excluir"

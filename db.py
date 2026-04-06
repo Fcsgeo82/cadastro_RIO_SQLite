@@ -400,14 +400,19 @@ def verify_login(username: str, password: str) -> dict:
     
     # Check lockout
     lockout_until = user_row.get("lockout_until")
+    if isinstance(lockout_until, bytes):
+        lockout_until = lockout_until.decode("utf-8", errors="ignore")
     if lockout_until:
-        lockout_time = datetime.fromisoformat(lockout_until.replace('Z', '+00:00'))
+        lockout_time = datetime.fromisoformat(str(lockout_until).replace('Z', '+00:00'))
         if datetime.now(timezone.utc) < lockout_time:
             remaining = (lockout_time - datetime.now(timezone.utc)).seconds // 60
             return {"error": "locked", "message": f"Conta bloqueada. Tente novamente em {remaining} minuto(s)."}
     
     # Verify password
-    if bcrypt.checkpw(password.encode(), user_row["password_hash"].encode()):
+    stored_hash = user_row["password_hash"]
+    if isinstance(stored_hash, str):
+        stored_hash = stored_hash.encode()
+    if bcrypt.checkpw(password.encode(), stored_hash):
         # Reset failed attempts on success
         _exec("UPDATE Usuarios SET failed_attempts = 0, lockout_until = NULL WHERE userID = ?", [user_row["userID"]])
         user_dict = user_row.to_dict()
@@ -415,7 +420,11 @@ def verify_login(username: str, password: str) -> dict:
         return user_dict
     
     # Increment failed attempts
-    failed = user_row.get("failed_attempts", 0) + 1
+    raw_failed = user_row.get("failed_attempts", 0)
+    if isinstance(raw_failed, bytes):
+        failed = int.from_bytes(raw_failed, byteorder="little") + 1
+    else:
+        failed = int(raw_failed or 0) + 1
     if failed >= 5:
         lockout = datetime.now(timezone.utc) + timedelta(minutes=15)
         _exec("UPDATE Usuarios SET failed_attempts = ?, lockout_until = ? WHERE userID = ?", [failed, lockout.isoformat(), user_row["userID"]])
