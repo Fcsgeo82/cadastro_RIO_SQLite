@@ -19,7 +19,7 @@ def _obter_label(dicionario_inverso, chave_busca):
         if str(id_) == str(chave_busca): return label
     return None
 
-def _selectbox(label: str, opcoes_dict: dict, valor_db: str, obrigatorio: bool = False):
+def _selectbox(label: str, opcoes_dict: dict, valor_db: str, obrigatorio: bool = False, disabled: bool = False):
     sufixo  = " *" if obrigatorio else ""
     rotulos = ["— selecione —"] + list(opcoes_dict.keys())
     idx = _get_index(opcoes_dict, valor_db)
@@ -28,8 +28,8 @@ def _selectbox(label: str, opcoes_dict: dict, valor_db: str, obrigatorio: bool =
     if idx >= len(rotulos): 
         idx = 0
         
-    sel = st.selectbox(label + sufixo, rotulos, index=idx)
-    return opcoes_dict.get(sel)
+    sel = st.selectbox(label + sufixo, rotulos, index=idx, disabled=disabled)
+    return None if disabled else opcoes_dict.get(sel)
 
 def render(linha_id: str):
     if not linha_id:
@@ -66,9 +66,9 @@ def render(linha_id: str):
         st.markdown("#### 📋 Identificação")
         col1, col2, col3 = st.columns([1, 2, 2])
         with col1:
-            numeroLinha = st.text_input("Número da Linha *", value=dados_bd.get("numeroLinha") or "")
+            numeroLinha = st.text_input("Número da Linha *", value=dados_bd.get("numeroLinha") or "", disabled=True)
         with col2:
-            vista = st.text_input("Vista *", value=dados_bd.get("vista") or "")
+            vista = st.text_input("Vista *", value=dados_bd.get("vista") or "", disabled=True)
         with col3:
             dt = None
             if dados_bd.get("dataCriacaoLinha"):
@@ -76,17 +76,17 @@ def render(linha_id: str):
                     dt = datetime.datetime.strptime(dados_bd["dataCriacaoLinha"], "%Y-%m-%d").date()
                 except:
                     dt = None
-            dataCriacaoLinha = st.date_input("Data de Criação *", value=dt)
+            dataCriacaoLinha = st.date_input("Data de Criação *", value=dt, disabled=True)
 
         colV1, colV2 = st.columns(2)
         with colV1:
-            via = st.text_input("Via", value=dados_bd.get("via") or "")
+            via = st.text_input("Via", value=dados_bd.get("via") or "", disabled=True)
 
         col4, col5 = st.columns(2)
         with col4:
-            servico_label  = _selectbox("Serviço", refs.get("servicos", {}), dados_bd.get("servico"), obrigatorio=True)
+            servico_label  = _selectbox("Serviço", refs.get("servicos", {}), dados_bd.get("servico"), obrigatorio=True, disabled=True)
         with col5:
-            operador_label = _selectbox("Operador", refs.get("operadores", {}), dados_bd.get("operador"), obrigatorio=True)
+            operador_label = _selectbox("Operador", refs.get("operadores", {}), dados_bd.get("operador"), obrigatorio=True, disabled=True)
 
         # ── Classificação ────────────────────────────────────────
         st.divider()
@@ -193,6 +193,12 @@ def render(linha_id: str):
         submitted = st.form_submit_button("💾 Salvar Alterações", width='stretch', type="primary")
 
     if submitted:
+        # Campos obrigatórios - usar valores do BD para campos disabled
+        if not servico_label:
+            servico_label = dados_bd.get("servico")
+        if not operador_label:
+            operador_label = dados_bd.get("operador")
+            
         obrigatorios = {"Número": numeroLinha, "Vista": vista, "Data Criação": dataCriacaoLinha, "Serviço": servico_label, "Operador": operador_label}
         faltando = [k for k, v in obrigatorios.items() if not v]
         

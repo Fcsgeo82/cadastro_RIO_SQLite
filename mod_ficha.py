@@ -1,11 +1,13 @@
 import streamlit as st
-import textwrap
-import re   # Add regex import here
+import re
+import os
+import base64
 from db import obter_linha_por_id
 from mod_cadastro import _carregar_todas_referencias
+import streamlit.components.v1 as components
+
 
 def _obter_label(dicionario_inverso, chave_busca):
-    """Encontra a label de um ID pesquisando num dicionário {Label: ID}."""
     if not chave_busca:
         return "-"
     for label, id_ in dicionario_inverso.items():
@@ -31,23 +33,6 @@ def render(linha_id: str):
 
     refs = _carregar_todas_referencias()
 
-    # --- Container Controle ---
-    col_back, col_print, _ = st.columns([1.5, 2.5, 6])
-    with col_back:
-        if st.button("⬅️ Voltar", width='stretch'):
-            st.session_state["aba_ativa"] = "Principal"
-            st.rerun()
-    with col_print:
-        import streamlit.components.v1 as components
-        components.html("""
-        <button onclick="window.parent.print()" style="background-color: #1a3a5c; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-family: sans-serif; font-weight: 600; font-size: 14px; width: 100%; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            🖨️ Imprimir (A4)
-        </button>
-        """, height=40)
-            
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # Parametrização dos Campos (Formatação e Checagem contra Nulos)
     v_linha = dados.get('numeroLinha', '-')
     v_servico = _obter_label(refs.get('servicos', {}), dados.get('servico'))
     v_vista = dados.get('vista', '-')
@@ -64,27 +49,22 @@ def render(linha_id: str):
     v_km_volta = str(dados.get('kmVOLTA')).replace('.',',') if dados.get('kmVOLTA') else '-'
     v_obs = dados.get('observacao') or '-'
 
-    # Tratamento customizado de Ofícios para incluir o Assunto em Nova Linha dentro da Célula HTML
     def _of_html(of_id):
         if not of_id: return "-"
         lbl = _obter_label(refs.get('oficios', {}), of_id)
         ass = refs.get('assuntos_oficios', {}).get(of_id, '')
         if ass and ass != "Sem assunto":
-             # Adiciona assunto num tamanho diminuto e sem negrito
              return f"{lbl}<br><span style='font-size:10.5px; font-weight:normal; color:#555;'>Assunto: {ass}</span>"
         return lbl
 
-    # Tratamento inline sem "Assunto" para as headers ao lado do bloco
     def _of_raw_lbl(of_id):
         if not of_id: return "-"
         return _obter_label(refs.get('oficios', {}), of_id)
-
 
     v_oficio_prin = _of_html(dados.get('oficio'))
     v_oficio_prim = _of_html(dados.get('oficioprimeiroHistorico'))
     v_oficio_ult  = _of_html(dados.get('oficioUltimaAlteracao'))
     
-    # Frota
     v_frota_of_html = _of_html(dados.get('frotaUltimoOficio'))
     v_frota_of_raw  = _of_raw_lbl(dados.get('frotaUltimoOficio'))
     v_frota_tipo = _obter_label(refs.get('tipos_veiculo', {}), dados.get('frotaTipoVeiculo'))
@@ -94,131 +74,141 @@ def render(linha_id: str):
             v_frota_data = v_frota_data[8:10] + "/" + v_frota_data[5:7] + "/" + v_frota_data[0:4]
     else: v_frota_data = '-'
 
-    # Itinerários
     v_itida_of_raw = _of_raw_lbl(dados.get('itinerarioIdaOficio'))
     v_itida_it = dados.get('itinerarioIDA') or '-'
     
     v_itvolta_of_raw = _of_raw_lbl(dados.get('itinerarioVoltaOficio'))
     v_itvolta_it = dados.get('itinerarioVOLTA') or '-'
 
-    # ================== HTML GENERATOR ==============================
-    html_content = textwrap.dedent(f"""
+    logo_dir = os.path.dirname(os.path.abspath(__file__))
+    logo_svg = os.path.join(logo_dir, "logo_rio.svg")
+    logo_png = os.path.join(logo_dir, "logo_rio.png")
+    logo_img = ""
+    if os.path.exists(logo_svg):
+        with open(logo_svg, "rb") as f:
+            logo_data = base64.b64encode(f.read()).decode()
+        logo_img = f'<img src="data:image/svg+xml;base64,{logo_data}" style="width:180px;height:auto;">'
+    elif os.path.exists(logo_png):
+        with open(logo_png, "rb") as f:
+            logo_data = base64.b64encode(f.read()).decode()
+        logo_img = f'<img src="data:image/png;base64,{logo_data}" style="width:160px;height:auto;">'
+
+    col_back, col_print, _ = st.columns([1.5, 2.5, 6])
+    with col_back:
+        if st.button("⬅️ Voltar", width='stretch'):
+            st.session_state["aba_ativa"] = "Principal"
+            st.rerun()
+    with col_print:
+        components.html("""
+        <button onclick="document.getElementById('ficha-frame').contentWindow.print()" style="background-color: #1a3a5c; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-family: sans-serif; font-weight: 600; font-size: 14px; width: 100%; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            🖨️ Imprimir
+        </button>
+        """, height=45)
+            
+    html_doc = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="UTF-8">
     <style>
+    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+    body {{ 
+        font-family: Arial, sans-serif; 
+        font-size: 13px; 
+        color: #000;
+        padding: 0;
+        background: white;
+    }}
     .ficha-container {{
-        background-color: white;
-        padding: 40px;
-        border: 1px solid #ccc;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         max-width: 900px;
         margin: 0 auto;
-        color: black;
+        background: white;
     }}
-    .ficha-header-logo {{
-        font-family: Arial, sans-serif;
-        font-size: 26px;
-        font-weight: 900;
-        color: #0b3c68;
-        border-right: 2px solid #0b3c68;
-        padding-right: 15px;
-        margin-right: 15px;
-        display: inline-block;
-        letter-spacing: -0.5px;
+    .header-bar {{
+        background: linear-gradient(135deg, #ffdc00 0%, #ffdc00 100%);
+        padding: 12px 20px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
     }}
-    .ficha-header-text {{
+    .header-bar .logo {{ }}
+    .header-bar .title {{ color: #000; }}
+    .header-bar .title h1 {{
+        font-size: 1.4rem;
+        margin: 0;
         font-family: Arial, sans-serif;
-        font-size: 16px;
-        color: #0b3c68;
-        display: inline-block;
-        font-weight: 500;
+        font-weight: 800;
     }}
-    .ficha-main-title {{
-        font-family: Arial, sans-serif;
+    .header-bar .title p {{
+        margin: 2px 0 0;
+        font-size: 0.85rem;
+    }}
+    .main-title {{
+        font-size: 18px;
         font-weight: bold;
-        font-size: 15px;
-        margin: 35px 0 20px 0;
-        color: #000;
+        color: #0b3c68;
+        margin: 15px 20px 15px 20px;
         text-transform: uppercase;
     }}
-    .ficha-table {{
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 25px;
-        font-family: Arial, sans-serif;
-        font-size: 13px;
-        color: #000;
-    }}
-    .ficha-table th, .ficha-table td {{
-        border: 1px solid #000;
-        padding: 6px 8px;
-        vertical-align: top;
-        line-height: 1.3;
-    }}
-    .ficha-table th {{
-        text-align: right;
-        font-weight: bold;
-        width: 20%;
-    }}
-    .ficha-table td {{
-        text-align: left;
-        width: 30%;
-    }}
-    .ficha-title {{
+    .section-title {{
         font-size: 14px;
         font-weight: bold;
-        margin: 0 0 5px 0;
+        margin: 15px 20px 5px 20px;
         font-family: Arial, sans-serif;
         color: #000;
     }}
-    .ficha-flex-header {{
+    .flex-header {{
         display: flex;
         justify-content: space-between;
         align-items: flex-end;
         font-family: Arial, sans-serif;
         font-size: 14px;
         font-weight: bold;
-        margin: 0 0 5px 0;
+        margin: 15px 20px 5px 20px;
         color: #000;
     }}
+    .data-table {{
+        width: calc(100% - 40px);
+        margin: 0 20px 15px 20px;
+        border-collapse: collapse;
+        font-family: Arial, sans-serif;
+        font-size: 13px;
+    }}
+    .data-table th, .data-table td {{
+        border: 1px solid #000;
+        padding: 5px 8px;
+        vertical-align: top;
+    }}
+    .data-table th {{
+        text-align: right;
+        font-weight: bold;
+        width: 20%;
+        background: #f5f5f5;
+    }}
     @media print {{
-        @page {{
-            size: A4;
-            margin: 15mm;
-        }}
-        body {{
-            background: white !important;
-        }}
-        header[data-testid="stHeader"], div[data-testid="stSidebar"], div[data-testid="stToolbar"], div[data-testid="stDecoration"], .stButton, iframe {{
-            display: none !important;
-        }}
-        .stApp {{
-            overflow: visible !important;
-        }}
-        div[data-testid="stVerticalBlock"] {{
-            gap: 0 !important;
-        }}
-        .ficha-container {{
-            box-shadow: none !important;
-            border: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            width: 100% !important;
-            max-width: 100% !important;
+        body {{ padding: 0; }}
+        .header-bar {{
+            background: #ffdc00 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }}
     }}
     </style>
-
+    </head>
+    <body>
     <div class="ficha-container">
-        <!-- HEADER -->
-        <div style="margin-bottom: 10px;">
-            <span class="ficha-header-logo">PREFEITURA RIO</span>
-            <span class="ficha-header-text">Transportes</span>
+        <div class="header-bar">
+            <div class="logo">{logo_img}</div>
+            <div class="title">
+                <h1>Rede Integrada de Ônibus</h1>
+                <p>Cadastro e Consulta</p>
+            </div>
         </div>
         
-        <div class="ficha-main-title">FICHA CADASTRAL</div>
+        <div class="main-title">FICHA CADASTRAL</div>
         
-        <!-- SEC 1 -->
-        <div class="ficha-title">Dados Cadastrais</div>
-        <table class="ficha-table">
+        <div class="section-title">Dados Cadastrais</div>
+        <table class="data-table">
             <tr>
                 <th>Linha:</th><td>{v_linha}</td>
                 <th>Serviço:</th><td>{v_servico}</td>
@@ -254,9 +244,8 @@ def render(linha_id: str):
             </tr>
         </table>
         
-        <!-- SEC 2 -->
-        <div class="ficha-title">Dados processuais</div>
-        <table class="ficha-table">
+        <div class="section-title">Dados processuais</div>
+        <table class="data-table">
             <tr>
                 <th>Ofício de criação:</th><td>{v_oficio_prim}</td>
                 <th>Ofício de última alteração:</th><td>{v_oficio_ult}</td>
@@ -266,12 +255,11 @@ def render(linha_id: str):
             </tr>
         </table>
         
-        <!-- SEC 3 -->
-        <div class="ficha-flex-header">
+        <div class="flex-header">
            <span>Frota autorizada</span>
            <span style="font-size:13px; font-weight:normal">Ofício de autorização: <b>{v_frota_of_raw}</b></span>
         </div>
-        <table class="ficha-table">
+        <table class="data-table">
             <tr>
                 <th style="width: 15%">Tipo:</th>
                 <td>{v_frota_tipo}</td>
@@ -280,12 +268,11 @@ def render(linha_id: str):
             </tr>
         </table>
         
-        <!-- SEC 4 -->
-        <div class="ficha-flex-header">
+        <div class="flex-header">
            <span>Itinerário de ida</span>
            <span style="font-size:13px; font-weight:normal">Ofício de última alteração: <b>{v_itida_of_raw}</b></span>
         </div>
-        <table class="ficha-table">
+        <table class="data-table">
             <tr>
                 <th style="width: 15%">Tipo:</th><td colspan="3">{v_tipo}</td>
             </tr>
@@ -294,12 +281,11 @@ def render(linha_id: str):
             </tr>
         </table>
         
-        <!-- SEC 5 -->
-        <div class="ficha-flex-header">
+        <div class="flex-header">
            <span>Itinerário de volta</span>
            <span style="font-size:13px; font-weight:normal">Ofício de última alteração: <b>{v_itvolta_of_raw}</b></span>
         </div>
-        <table class="ficha-table">
+        <table class="data-table">
             <tr>
                 <th style="width: 15%">Tipo:</th><td colspan="3">{v_tipo}</td>
             </tr>
@@ -308,9 +294,11 @@ def render(linha_id: str):
             </tr>
         </table>
     </div>
-    """)
+    </body>
+    </html>
+    """
 
-    # Remove qualquer indentação para impedir que o Streamlit Markdown o renderize como bloco de código (<pre><code>)
-    html_content = re.sub(r'\n\s+', '\n', html_content)
-
-    st.markdown(html_content, unsafe_allow_html=True)
+    import urllib.parse
+    encoded_html = urllib.parse.quote(html_doc)
+    iframe_html = f'<iframe id="ficha-frame" src="data:text/html;charset=utf-8,{encoded_html}" style="width:100%;height:900px;border:none;"></iframe>'
+    st.markdown(iframe_html, unsafe_allow_html=True)

@@ -23,6 +23,8 @@ st.set_page_config(
     layout="wide",
 )
 
+# --- Logo no Header (caixa azul) ---
+
 # Auth & Session init
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
@@ -144,27 +146,11 @@ h1, h2, h3 {
     letter-spacing: -0.03em !important;
 }
 
-/* Header */
-.app-header {
-    background: linear-gradient(135deg, #1a3a5c 0%, #2d6a9f 100%);
-    padding: 24px 32px;
-    border-radius: 12px;
-    margin-bottom: 28px;
-    display: flex;
-    align-items: center;
-    gap: 18px;
+/* Header simples */
+.header-logo {
+    width: 50px;
+    height: auto;
 }
-.app-header h1 {
-    color: white !important;
-    font-size: 1.8rem !important;
-    margin: 0 !important;
-}
-.app-header p {
-    color: rgba(255,255,255,0.75);
-    margin: 4px 0 0;
-    font-size: 0.9rem;
-}
-.header-icon { font-size: 2.5rem; }
 
 /* Tabs */
 .stTabs [data-baseweb="tab-list"] {
@@ -185,7 +171,7 @@ h1, h2, h3 {
 
 /* Botão primário */
 .stButton > button[kind="primary"] {
-    background: #1a3a5c;
+    background: #000000;
     border: none;
     border-radius: 8px;
     font-weight: 600;
@@ -222,13 +208,59 @@ footer { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- Header ---
-st.markdown("""
-<div class="app-header">
-    <span class="header-icon">🚌</span>
+# --- Header com Logo ---
+import os
+import base64
+
+logo_dir = os.path.dirname(os.path.abspath(__file__))
+logo_svg = os.path.join(logo_dir, "logo_rio.svg")
+logo_png = os.path.join(logo_dir, "logo_rio.png")
+
+logo_img = ""
+if os.path.exists(logo_svg):
+    with open(logo_svg, "rb") as f:
+        logo_data = base64.b64encode(f.read()).decode()
+    logo_img = f'<img src="data:image/svg+xml;base64,{logo_data}" style="width:230px;height:auto;display:block;margin:0 auto;">'
+elif os.path.exists(logo_png):
+    with open(logo_png, "rb") as f:
+        logo_data = base64.b64encode(f.read()).decode()
+    logo_img = f'<img src="data:image/png;base64,{logo_data}" style="width:200px;height:auto;display:block;margin:0 auto;">'
+
+subtitle = "Cadastro e Consulta"
+
+st.markdown(f"""
+<style>
+.header-wrapper {{
+    background: linear-gradient(135deg, #ffdc00 0%, #ffdc00 100%);
+    padding: 14px 20px;
+    border-radius: 12px;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 25px;
+}}
+.header-wrapper h1 {{
+    color: #000000 !important;
+    font-size: 2rem !important;
+    margin: 0 !important;
+}}
+.header-wrapper p {{
+    color: #000000;
+    margin: 2px 0 0;
+    font-size: 1rem;
+}}
+.logo-box {{
+    background: linear-gradient(135deg, #ffdc00 0%, #ffdc00 100%);
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+}}
+</style>
+<div class="header-wrapper">
+    <div class="logo-box">{logo_img}</div>
     <div>
-        <h1>Sistema de Linhas de Ônibus</h1>
-        <p>Cadastro e Consulta via SQLite</p>
+        <h1>Rede Integrada de Ônibus</h1>
+        <p>{subtitle}</p>
     </div>
 </div>
 """, unsafe_allow_html=True)
