@@ -62,24 +62,43 @@ def carregar_operadores() -> pd.DataFrame:
 
 def carregar_areas_operacionais() -> pd.DataFrame:
     df = _query_df(f"""
-        SELECT areaOperacionalID, descricao
+        SELECT areaOperacionalID, codigo, corReferencia, descricao
         FROM AreaOperacional
+        ORDER BY codigo
+    """)
+    if df.empty:
+        return df
+    
+    # Montar label: (codigo - corReferencia - descricao)
+    df['label'] = (
+        df['codigo'].astype(str) + " - " + 
+        df['corReferencia'].fillna("Sem Cor") + " - " + 
+        df['descricao']
+    )
+    
+    return df[['areaOperacionalID', 'label']].rename(columns={"areaOperacionalID": "id"})
+
+
+def carregar_parametros_novos() -> pd.DataFrame:
+    df = _query_df(f"""
+        SELECT parametroID, descricao
+        FROM Parametro
         ORDER BY descricao
     """)
     if df.empty:
         return df
-    return df.rename(columns={"areaOperacionalID": "id", "descricao": "label"})
+    return df.rename(columns={"parametroID": "id", "descricao": "label"})
 
 
-def carregar_areas_geograficas() -> pd.DataFrame:
+def carregar_caracteristicas() -> pd.DataFrame:
     df = _query_df(f"""
-        SELECT areaGeograficaOperacaoID, area
-        FROM AreaGeograficaOperacao
-        ORDER BY area
+        SELECT caracteristicaID, descricao
+        FROM Caracteristica
+        ORDER BY descricao
     """)
     if df.empty:
         return df
-    return df.rename(columns={"areaGeograficaOperacaoID": "id", "area": "label"})
+    return df.rename(columns={"caracteristicaID": "id", "descricao": "label"})
 
 
 def carregar_tipos_sistema() -> pd.DataFrame:
@@ -104,15 +123,7 @@ def carregar_tipos_veiculo() -> pd.DataFrame:
     return df.rename(columns={"tipoVeiculoID": "id", "descricao": "label"})
 
 
-def carregar_parametros() -> pd.DataFrame:
-    df = _query_df(f"""
-        SELECT parametroFuncionalID, parametro
-        FROM ParametroFuncional
-        ORDER BY parametro
-    """)
-    if df.empty:
-        return df
-    return df.rename(columns={"parametroFuncionalID": "id", "parametro": "label"})
+# Deprecated: carregar_parametros e carregar_areas_geograficas removidos.
 
 
 def carregar_grupamentos() -> pd.DataFrame:
@@ -138,7 +149,7 @@ def carregar_oficios() -> pd.DataFrame:
     df['numeroOficio'] = pd.to_numeric(df['numeroOficio'], errors='coerce').fillna(0).astype(int)
     df['ano'] = pd.to_datetime(df['dataOficio'], errors='coerce').dt.strftime('%Y').fillna('XXXX')
     
-    df['label'] = "Ofício SMTR-A " + df['numeroOficio'].apply(lambda x: f"{x:02d}") + "/" + df['ano']
+    df['label'] = "Ofício SMTR-RIO " + df['numeroOficio'].apply(lambda x: f"{x:02d}") + "/" + df['ano']
     
     return df[['oficioID', 'label']].rename(columns={"oficioID": "id"})
 
@@ -182,9 +193,8 @@ def inserir_linha(dados: dict) -> tuple[bool, str]:
         "tipoSistema":           dados.get("tipoSistema") or None,
         "kmIDA":                 float(dados["kmIDA"]) if dados.get("kmIDA") else None,
         "kmVOLTA":               float(dados["kmVOLTA"]) if dados.get("kmVOLTA") else None,
-        "areaGeografica":        dados.get("areaGeografica") or None,
-        "classificacaoEspacial": (dados.get("classificacaoEspacial") or "").strip() or None,
-        "parametro":             dados.get("parametro") or None,
+        "parametro_novo":        dados.get("parametro_novo") or None,
+        "caracteristica":        dados.get("caracteristica") or None,
         "grupamentoBRS":         dados.get("grupamentoBRS"),
         "frotaTipoVeiculo":      dados.get("frotaTipoVeiculo") or None,
         "frotaUltimoOficio":     dados.get("frotaUltimoOficio") or None,
@@ -204,8 +214,9 @@ def inserir_linha(dados: dict) -> tuple[bool, str]:
         
         # Inserir Itinerários se fornecidos
         itinerarios = dados.get("itinerarios", [])
+        oficios_it  = dados.get("itinerarios_oficios", {})
         if itinerarios:
-            salvar_itinerarios(cursor, row["linhaID"], itinerarios)
+            salvar_itinerarios(cursor, row["linhaID"], itinerarios, oficios_it)
             
         conn.commit()
         conn.close()
@@ -258,12 +269,10 @@ def consultar_linhas(
             op.nomeFantasia                                                     AS `Operador`,
             ao.descricao                                                        AS `Área Operacional`,
             ts.descricao                                                        AS `Tipo Sistema`,
-            ag.area                                                             AS `Área Geográfica`,
-            pf.parametro                                                        AS `Parâmetro`,
-            tv.descricao                                                        AS `Tipo Veículo`,
+            p.descricao                                                         AS `Parâmetro`,
+            c.descricao                                                         AS `Característica`,
             l.kmIDA                                                             AS `KM Ida`,
             l.kmVOLTA                                                           AS `KM Volta`,
-            l.classificacaoEspacial                                             AS `Classif. Espacial`,
             l.dataCriacaoLinha                                                  AS `Data Criação`,
             l.dataCadastro                                                      AS `Cadastrado em`
         FROM Linha l
@@ -271,8 +280,8 @@ def consultar_linhas(
         LEFT JOIN operador               op ON l.operador        = op.operadorID
         LEFT JOIN AreaOperacional        ao ON l.areaOperacional = ao.areaOperacionalID
         LEFT JOIN TipoSistema            ts ON l.tipoSistema     = ts.tipoSistemaID
-        LEFT JOIN AreaGeograficaOperacao ag ON l.areaGeografica  = ag.areaGeograficaOperacaoID
-        LEFT JOIN ParametroFuncional     pf ON l.parametro       = pf.parametroFuncionalID
+        LEFT JOIN Parametro              p  ON l.parametro_novo  = p.parametroID
+        LEFT JOIN Caracteristica         c  ON l.caracteristica  = c.caracteristicaID
         LEFT JOIN TipoVeiculo            tv ON l.frotaTipoVeiculo = tv.tipoVeiculoID
         WHERE {where}
         ORDER BY l.dataCadastro DESC
@@ -322,17 +331,33 @@ def obter_itinerarios(linha_id: str) -> list[dict]:
     df = _query_df("SELECT * FROM Itinerario WHERE linhaRefID = ? ORDER BY tipo, sentido, ordem", [linha_id])
     return df.to_dict("records")
 
-def salvar_itinerarios(cursor, linha_id: str, itinerarios: list[dict]):
+def obter_oficios_itinerarios(linha_id: str) -> list[dict]:
+    """Retorna os ofícios únicos vinculados aos itinerários de uma linha para o histórico."""
+    sql = """
+        SELECT DISTINCT i.oficio, i.tipo, o.dataOficio
+        FROM Itinerario i
+        JOIN Oficio o ON i.oficio = o.oficioID
+        WHERE i.linhaRefID = ? AND i.oficio IS NOT NULL
+    """
+    df = _query_df(sql, [linha_id])
+    return df.to_dict("records")
+
+def salvar_itinerarios(cursor, linha_id: str, itinerarios: list[dict], oficios_tipos: dict = None):
     """Helper para salvar (deletar e inserir) itinerários de uma linha em uma transação."""
+    # oficios_tipos -> {"R": "id_oficio_regular", "A": "id_oficio_alternativo"}
+    if oficios_tipos is None:
+        oficios_tipos = {}
+        
     # Deleta existentes primeiro
     cursor.execute("DELETE FROM Itinerario WHERE linhaRefID = ?", (linha_id,))
     
     # Inserir novos
     for i, it in enumerate(itinerarios):
-        # Campos: itinerarioID, linhaRefID, sentido, ordem, logradouro, bairro, observacao, tipo
+        # Campos: itinerarioID, linhaRefID, sentido, ordem, logradouro, bairro, observacao, tipo, oficio
+        tipo = it.get("tipo", "R")
         sql_it = """
-            INSERT INTO Itinerario (itinerarioID, linhaRefID, sentido, ordem, logradouro, bairro, observacao, tipo)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO Itinerario (itinerarioID, linhaRefID, sentido, ordem, logradouro, bairro, observacao, tipo, oficio)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         cursor.execute(sql_it, (
             str(uuid.uuid4()),
@@ -342,7 +367,8 @@ def salvar_itinerarios(cursor, linha_id: str, itinerarios: list[dict]):
             it.get("logradouro", ""),
             it.get("bairro", ""),
             it.get("observacao", ""),
-            it.get("tipo", "R")
+            tipo,
+            oficios_tipos.get(tipo)
         ))
 
 def atualizar_linha(linha_id: str, dados: dict) -> tuple[bool, str]:
@@ -365,9 +391,8 @@ def atualizar_linha(linha_id: str, dados: dict) -> tuple[bool, str]:
         "tipoSistema":           dados.get("tipoSistema") or None,
         "kmIDA":                 float(dados["kmIDA"]) if dados.get("kmIDA") else None,
         "kmVOLTA":               float(dados["kmVOLTA"]) if dados.get("kmVOLTA") else None,
-        "areaGeografica":        dados.get("areaGeografica") or None,
-        "classificacaoEspacial": (dados.get("classificacaoEspacial") or "").strip() or None,
-        "parametro":             dados.get("parametro") or None,
+        "parametro_novo":        dados.get("parametro_novo") or None,
+        "caracteristica":        dados.get("caracteristica") or None,
         "grupamentoBRS":         dados.get("grupamentoBRS"),
         "frotaTipoVeiculo":      dados.get("frotaTipoVeiculo") or None,
         "frotaUltimoOficio":     dados.get("frotaUltimoOficio") or None,
@@ -388,7 +413,8 @@ def atualizar_linha(linha_id: str, dados: dict) -> tuple[bool, str]:
         
         # Atualizar Itinerários
         if "itinerarios" in dados:
-            salvar_itinerarios(cursor, linha_id, dados["itinerarios"])
+            oficios_it = dados.get("itinerarios_oficios", {})
+            salvar_itinerarios(cursor, linha_id, dados["itinerarios"], oficios_it)
             
         conn.commit()
         conn.close()

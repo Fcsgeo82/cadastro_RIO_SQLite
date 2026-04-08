@@ -40,11 +40,10 @@ def render(linha_id: str):
     v_operador = _obter_label(refs.get('operadores', {}), dados.get('operador'))
     v_criacao = dados.get('dataCriacaoLinha') or '-'
     v_tipo = _obter_label(refs.get('tipos_sistema', {}), dados.get('tipoSistema'))
-    v_class = dados.get('classificacaoEspacial') or '-'
+    v_caracteristica = _obter_label(refs.get('caracteristicas', {}), dados.get('caracteristica'))
     v_area_op = _obter_label(refs.get('areas_op', {}), dados.get('areaOperacional'))
-    v_area_geo = _obter_label(refs.get('areas_geo', {}), dados.get('areaGeografica'))
     v_grupamento = _obter_label(refs.get('grupamentos', {}), dados.get('grupamentoBRS'))
-    v_parametro = _obter_label(refs.get('parametros', {}), dados.get('parametro'))
+    v_parametro = _obter_label(refs.get('parametros', {}), dados.get('parametro_novo'))
     v_km_ida = str(dados.get('kmIDA')).replace('.',',') if dados.get('kmIDA') else '-'
     v_km_volta = str(dados.get('kmVOLTA')).replace('.',',') if dados.get('kmVOLTA') else '-'
     v_obs = dados.get('observacao') or '-'
@@ -77,28 +76,29 @@ def render(linha_id: str):
     # Processamento de Itinerários para o HTML
     it_lista = dados.get("itinerarios", [])
     
-    def _gerar_linhas_itinerario(tipo):
-        ida = [it for it in it_lista if it.get("tipo") == tipo and str(it.get("sentido")) == "0"]
-        volta = [it for it in it_lista if it.get("tipo") == tipo and str(it.get("sentido")) == "1"]
+    def _gerar_linhas_direcao(tipo, sentido):
+        pts = [it for it in it_lista if it.get("tipo") == tipo and str(it.get("sentido")) == str(sentido)]
+        pts = sorted(pts, key=lambda x: x.get("ordem", 0))
         
-        ida = sorted(ida, key=lambda x: x.get("ordem", 0))
-        volta = sorted(volta, key=lambda x: x.get("ordem", 0))
-        
-        max_rows = max(len(ida), len(volta))
         rows_html = ""
-        
-        if max_rows == 0:
-            return "<tr><td colspan='6' style='text-align:center; color:#888;'>Nenhum ponto registrado</td></tr>"
+        if not pts:
+            return "<tr><td colspan='3' style='text-align:center; color:#888;'>Nenhum ponto registrado</td></tr>"
             
-        for i in range(max_rows):
-            p_ida = ida[i] if i < len(ida) else {}
-            p_volta = volta[i] if i < len(volta) else {}
-            
-            rows_html += f"<tr><td>{p_ida.get('logradouro', '')}</td><td>{p_ida.get('observacao', '')}</td><td>{p_ida.get('bairro', '')}</td><td style='border-left: 2px solid #000;'>{p_volta.get('logradouro', '')}</td><td>{p_volta.get('observacao', '')}</td><td>{p_volta.get('bairro', '')}</td></tr>"
+        for p in pts:
+            rows_html += f"<tr><td>{p.get('logradouro', '')}</td><td>{p.get('observacao', '')}</td><td>{p.get('bairro', '')}</td></tr>"
         return rows_html
 
-    v_html_reg = _gerar_linhas_itinerario("R")
-    v_html_alt = _gerar_linhas_itinerario("A")
+    v_reg_ida = _gerar_linhas_direcao("R", "0")
+    v_reg_volta = _gerar_linhas_direcao("R", "1")
+    v_alt_ida = _gerar_linhas_direcao("A", "0")
+    v_alt_volta = _gerar_linhas_direcao("A", "1")
+
+    # Ofícios por Itinerário
+    v_it_reg_of_id = next((it.get("oficio") for it in it_lista if it.get("tipo") == "R"), None)
+    v_it_alt_of_id = next((it.get("oficio") for it in it_lista if it.get("tipo") == "A"), None)
+    
+    v_it_reg_of_raw = _of_raw_lbl(v_it_reg_of_id)
+    v_it_alt_of_raw = _of_raw_lbl(v_it_alt_of_id)
 
     logo_dir = os.path.dirname(os.path.abspath(__file__))
     logo_svg = os.path.join(logo_dir, "logo_rio.svg")
@@ -113,17 +113,11 @@ def render(linha_id: str):
             logo_data = base64.b64encode(f.read()).decode()
         logo_img = f'<img src="data:image/png;base64,{logo_data}" style="width:160px;height:auto;">'
 
-    col_back, col_print, _ = st.columns([1.5, 2.5, 6])
+    col_back, _ = st.columns([1.5, 8.5])
     with col_back:
         if st.button("⬅️ Voltar", width='stretch'):
             st.session_state["aba_ativa"] = "Principal"
             st.rerun()
-    with col_print:
-        components.html("""
-        <button onclick="document.getElementById('ficha-frame').contentWindow.print()" style="background-color: #1a3a5c; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-family: sans-serif; font-weight: 600; font-size: 14px; width: 100%; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            🖨️ Imprimir
-        </button>
-        """, height=45)
             
     html_doc = f"""
     <!DOCTYPE html>
@@ -205,10 +199,27 @@ def render(linha_id: str):
         width: 20%;
         background: #f5f5f5;
     }}
-    .itinerario-table {{ width: calc(100% - 40px); margin: 0 20px 15px 20px; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 11px; }}
+    .itinerario-table {{ width: calc(100% - 40px); margin: 0 20px 10px 20px; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 11px; }}
     .itinerario-table th, .itinerario-table td {{ border: 1px solid #000; padding: 4px 6px; vertical-align: top; }}
-    .itinerario-table th {{ background: #f5f5f5; font-weight: bold; text-align: center; }}
+    .itinerario-table th {{ background: #f5f5f5; font-weight: bold; text-align: left; }}
+    .it-sub-header {{ background: #e9ecef !important; font-weight: bold; text-align: center; text-transform: uppercase; font-size: 11px; }}
+    .btn-print {{
+        background: #1a3a5c;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }}
+    .btn-print:hover {{ background: #254d77; }}
     @media print {{
+        .no-print {{ display: none !important; }}
         body {{ padding: 0; }}
         .header-bar {{
             background: #ffdc00 !important;
@@ -222,9 +233,14 @@ def render(linha_id: str):
     <div class="ficha-container">
         <div class="header-bar">
             <div class="logo">{logo_img}</div>
-            <div class="title">
+            <div class="title" style="flex-grow: 1;">
                 <h1>Rede Integrada de Ônibus</h1>
                 <p>Cadastro e Consulta</p>
+            </div>
+            <div class="no-print">
+                <button class="btn-print" onclick="window.print()">
+                    <span>🖨️</span> Imprimir Ficha
+                </button>
             </div>
         </div>
         
@@ -247,16 +263,15 @@ def render(linha_id: str):
                 <th>Data de Criação:</th><td>{v_criacao}</td>
             </tr>
             <tr>
-                <th>Tipo de linha:</th><td>{v_tipo}</td>
-                <th>Classificação espacial:</th><td>{v_class}</td>
+                <th>Tipo de Sistema:</th><td>{v_tipo}</td>
+                <th>Característica:</th><td>{v_caracteristica}</td>
             </tr>
             <tr>
                 <th>Área Operacional:</th><td>{v_area_op}</td>
-                <th>Área Geográfica:</th><td>{v_area_geo}</td>
+                <th>Parâmetro:</th><td>{v_parametro}</td>
             </tr>
             <tr>
-                <th>Grupamento BRS:</th><td>{v_grupamento}</td>
-                <th>Parâmetro Funcional:</th><td>{v_parametro}</td>
+                <th>Grupamento BRS:</th><td colspan="3">{v_grupamento}</td>
             </tr>
             <tr>
                 <th>Extensão de ida:</th><td>{v_km_ida} km</td>
@@ -273,9 +288,6 @@ def render(linha_id: str):
                 <th>Ofício de criação:</th><td>{v_oficio_prim}</td>
                 <th>Ofício de última alteração:</th><td>{v_oficio_ult}</td>
             </tr>
-            <tr>
-                <th>Ofício Principal:</th><td colspan="3">{v_oficio_prin}</td>
-            </tr>
         </table>
         
         <div class="flex-header">
@@ -291,38 +303,46 @@ def render(linha_id: str):
             </tr>
         </table>
         
-        <div class="section-title">Itinerário Regular</div>
+        <div class="flex-header">
+           <span>Itinerário Regular</span>
+           <span style="font-size:13px; font-weight:normal">Ofício de autorização: <b>{v_it_reg_of_raw}</b></span>
+        </div>
         <table class="itinerario-table">
+            <tr><th colspan="3" class="it-sub-header">Itinerário de Ida</th></tr>
             <tr>
-                <th colspan="3">Itinerário de Ida</th>
-                <th colspan="3" style="border-left: 2px solid #000;">Itinerário de Volta</th>
+                <th style="width: 40%;">Logradouro</th>
+                <th style="width: 30%;">Complemento</th>
+                <th style="width: 30%;">Bairro</th>
             </tr>
+            {v_reg_ida}
+            <tr><th colspan="3" class="it-sub-header">Itinerário de Volta</th></tr>
             <tr>
-                <th style="width: 20%;">Logradouro</th>
-                <th style="width: 15%;">Complemento</th>
-                <th style="width: 15%;">Bairro</th>
-                <th style="width: 20%; border-left: 2px solid #000;">Logradouro</th>
-                <th style="width: 15%;">Complemento</th>
-                <th style="width: 15%;">Bairro</th>
+                <th>Logradouro</th>
+                <th>Complemento</th>
+                <th>Bairro</th>
             </tr>
-            {v_html_reg}
+            {v_reg_volta}
         </table>
         
-        <div class="section-title">Itinerário Alternativo</div>
+        <div class="flex-header">
+           <span>Itinerário Alternativo</span>
+           <span style="font-size:13px; font-weight:normal">Ofício de autorização: <b>{v_it_alt_of_raw}</b></span>
+        </div>
         <table class="itinerario-table">
+            <tr><th colspan="3" class="it-sub-header">Itinerário de Ida</th></tr>
             <tr>
-                <th colspan="3">Itinerário de Ida</th>
-                <th colspan="3" style="border-left: 2px solid #000;">Itinerário de Volta</th>
+                <th style="width: 40%;">Logradouro</th>
+                <th style="width: 30%;">Complemento</th>
+                <th style="width: 30%;">Bairro</th>
             </tr>
+            {v_alt_ida}
+            <tr><th colspan="3" class="it-sub-header">Itinerário de Volta</th></tr>
             <tr>
-                <th style="width: 20%;">Logradouro</th>
-                <th style="width: 15%;">Complemento</th>
-                <th style="width: 15%;">Bairro</th>
-                <th style="width: 20%; border-left: 2px solid #000;">Logradouro</th>
-                <th style="width: 15%;">Complemento</th>
-                <th style="width: 15%;">Bairro</th>
+                <th>Logradouro</th>
+                <th>Complemento</th>
+                <th>Bairro</th>
             </tr>
-            {v_html_alt}
+            {v_alt_volta}
         </table>
     </div>
     </body>

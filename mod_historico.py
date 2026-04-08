@@ -1,6 +1,6 @@
 import streamlit as st
 import datetime
-from db import obter_linha_por_id
+from db import obter_linha_por_id, obter_oficios_itinerarios
 from mod_cadastro import _carregar_todas_referencias
 
 def _obter_label(dicionario_inverso, chave_busca):
@@ -81,7 +81,7 @@ def render(linha_id: str):
     })
     
     # 2. Frota
-    if dados.get("frotaUltimoOficio"):
+    if dados.get("frotaDataOficio"):
         events.append({
             "tipo": "🚍 Alteração de Frota",
             "data_raw": dados.get("frotaDataOficio"),
@@ -89,7 +89,18 @@ def render(linha_id: str):
             "oficio": dados.get("frotaUltimoOficio"),
         })
 
-    # 3. Última Modificação
+    # 3. Itinerários
+    its_oficios = obter_oficios_itinerarios(linha_id)
+    for it_of in its_oficios:
+        tipo_lbl = "Regular" if it_of.get("tipo") == "R" else "Alternativo"
+        events.append({
+            "tipo": f"🗺️ Alteração de Itinerário ({tipo_lbl})",
+            "data_raw": it_of.get("dataOficio"),
+            "date_obj": parse_date(it_of.get("dataOficio")),
+            "oficio": it_of.get("oficio"),
+        })
+
+    # 4. Última Modificação
     events.append({
         "tipo": "💾 Última Modificação Geral",
         "data_raw": dados.get("ultimaAtualizacao"),

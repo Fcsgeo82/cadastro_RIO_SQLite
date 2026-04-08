@@ -119,22 +119,20 @@ def render(linha_id: str):
         # ── Classificação ────────────────────────────────────────
         st.divider()
         st.markdown("#### 🗂️ Classificação")
-        col6, col7, col8 = st.columns(3)
+        col6, col7 = st.columns(2)
         with col6:
             area_op_id       = _selectbox("Área Operacional", refs.get("areas_op", {}), dados_bd.get("areaOperacional"))
         with col7:
-            area_geo_id      = _selectbox("Área Geográfica", refs.get("areas_geo", {}), dados_bd.get("areaGeografica"))
-        with col8:
             tipo_sistema_id  = _selectbox("Tipo de Sistema", refs.get("tipos_sistema", {}), dados_bd.get("tipoSistema"))
 
-        col9, col10, col11 = st.columns(3)
+        col8, col9, col10 = st.columns(3)
+        with col8:
+            parametro_id     = _selectbox("Parâmetro", refs.get("parametros", {}), dados_bd.get("parametro_novo"))
         with col9:
-            parametro_id     = _selectbox("Parâmetro Funcional", refs.get("parametros", {}), dados_bd.get("parametro"))
+            caracteristica_id = _selectbox("Característica", refs.get("caracteristicas", {}), dados_bd.get("caracteristica"))
         with col10:
             grupamento_id    = str(dados_bd.get("grupamentoBRS")) if dados_bd.get("grupamentoBRS") else None
             grupamento_label = _selectbox("Grupamento BRS", refs.get("grupamentos", {}), grupamento_id)
-        with col11:
-            classificacaoEspacial = _selectbox("Classificação Espacial", refs.get("classificacoes_espaciais", {}), dados_bd.get("classificacaoEspacial"))
 
         # ── Quilometragem ────────────────────────────────────────
         st.divider()
@@ -149,11 +147,7 @@ def render(linha_id: str):
         st.divider()
         st.markdown("#### 📄 Ofícios")
         st.info("ℹ️ A Atualização da *Última Alteração* será feita automaticamente caso novos ofícios sejam associados à frota ou ao itinerário nesta modificação.")
-        col14, col15, col16 = st.columns(3)
-        with col14:
-            oficio_id         = _selectbox("Ofício", refs.get("oficios", {}), dados_bd.get("oficio"))
-            if oficio_id:
-                st.info(f"ℹ️ **Assunto:** {refs.get('assuntos_oficios', {}).get(oficio_id, 'Sem assunto')}")
+        col15, col16 = st.columns(2)
         with col15:
             oficio_prim_hist_id = _selectbox("Ofício — Primeiro Histórico", refs.get("oficios", {}), dados_bd.get("oficioprimeiroHistorico"))
             if oficio_prim_hist_id:
@@ -191,18 +185,24 @@ def render(linha_id: str):
         tabR, tabA = st.tabs(["Itinerário Regular", "Itinerário Alternativo"])
         
         with tabR:
-            colIr1, colIr2 = st.columns(2)
-            with colIr1:
-                df_reg_ida = _itinerario_editor_edicao("Ida", "edit_reg_ida", _load_itinerario_df(it_lista, "R", "0"))
-            with colIr2:
-                df_reg_volta = _itinerario_editor_edicao("Volta", "edit_reg_volta", _load_itinerario_df(it_lista, "R", "1"))
+            it_reg_oficio_db = next((it.get("oficio") for it in it_lista if it.get("tipo") == "R"), None)
+            it_reg_oficio_id = _selectbox("Ofício de Autorização (Regular)", refs.get("oficios", {}), it_reg_oficio_db)
+            if it_reg_oficio_id:
+                 st.caption(f"**Assunto:** {refs.get('assuntos_oficios', {}).get(it_reg_oficio_id, 'Sem assunto')}")
+            
+            df_reg_ida = _itinerario_editor_edicao("Ida", "edit_reg_ida", _load_itinerario_df(it_lista, "R", "0"))
+            st.write("") # Espaçador
+            df_reg_volta = _itinerario_editor_edicao("Volta", "edit_reg_volta", _load_itinerario_df(it_lista, "R", "1"))
                 
         with tabA:
-            colIa1, colIa2 = st.columns(2)
-            with colIa1:
-                df_alt_ida = _itinerario_editor_edicao("Ida", "edit_alt_ida", _load_itinerario_df(it_lista, "A", "0"))
-            with colIa2:
-                df_alt_volta = _itinerario_editor_edicao("Volta", "edit_alt_volta", _load_itinerario_df(it_lista, "A", "1"))
+            it_alt_oficio_db = next((it.get("oficio") for it in it_lista if it.get("tipo") == "A"), None)
+            it_alt_oficio_id = _selectbox("Ofício de Autorização (Alternativo)", refs.get("oficios", {}), it_alt_oficio_db)
+            if it_alt_oficio_id:
+                 st.caption(f"**Assunto:** {refs.get('assuntos_oficios', {}).get(it_alt_oficio_id, 'Sem assunto')}")
+
+            df_alt_ida = _itinerario_editor_edicao("Ida", "edit_alt_ida", _load_itinerario_df(it_lista, "A", "0"))
+            st.write("") # Espaçador
+            df_alt_volta = _itinerario_editor_edicao("Volta", "edit_alt_volta", _load_itinerario_df(it_lista, "A", "1"))
 
         # ── Observação ───────────────────────────────────────────
         st.divider()
@@ -237,6 +237,12 @@ def render(linha_id: str):
             
         if oficio_id and str(oficio_id) != str(dados_bd.get("oficio") or ""):
             oficios_alterados.append(str(oficio_id))
+            
+        if it_reg_oficio_id and str(it_reg_oficio_id) != str(it_reg_oficio_db or ""):
+            oficios_alterados.append(str(it_reg_oficio_id))
+
+        if it_alt_oficio_id and str(it_alt_oficio_id) != str(it_alt_oficio_db or ""):
+            oficios_alterados.append(str(it_alt_oficio_id))
 
         if oficios_alterados:
             # Achar o ofício mais recente entre os alterados
@@ -260,21 +266,24 @@ def render(linha_id: str):
             "vista":                    vista,
             "via":                      via,
             "areaOperacional":          area_op_id,
-            "oficio":                   oficio_id,
+            "oficio":                   dados_bd.get("oficio"),
             "oficioprimeiroHistorico":  oficio_prim_hist_id,
             "oficioUltimaAlteracao":    oficio_ult_alt_id,
             "tipoSistema":              tipo_sistema_id,
             "kmIDA":                    kmIDA if kmIDA else None,
             "kmVOLTA":                  kmVOLTA if kmVOLTA else None,
-            "areaGeografica":           area_geo_id,
-            "classificacaoEspacial":    classificacaoEspacial,
-            "parametro":                parametro_id,
+            "parametro_novo":           parametro_id,
+            "caracteristica":           caracteristica_id,
             "grupamentoBRS":            grupamento_label,
             "frotaTipoVeiculo":         frota_tipo_veiculo_id,
             "frotaUltimoOficio":        frota_ultimo_oficio_id,
             "frotaDataOficio":          str(frotaDataOficio) if frotaDataOficio else None,
             "observacao":               observacao,
-            "itinerarios":              [] # Será preenchido abaixo
+            "itinerarios":              [], # Será preenchido abaixo
+            "itinerarios_oficios": {
+                "R": it_reg_oficio_id,
+                "A": it_alt_oficio_id
+            }
         }
 
         # Processar Itinerários

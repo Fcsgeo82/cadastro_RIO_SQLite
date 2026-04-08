@@ -8,23 +8,25 @@ import pandas as pd
 from db import (
     inserir_linha, opcoes,
     carregar_servicos, carregar_operadores,
-    carregar_areas_operacionais, carregar_areas_geograficas,
+    carregar_areas_operacionais, 
+    carregar_parametros_novos, carregar_caracteristicas,
     carregar_tipos_sistema, carregar_tipos_veiculo,
-    carregar_parametros, carregar_grupamentos, carregar_oficios, carregar_assuntos_oficios
+    carregar_grupamentos, carregar_oficios, carregar_assuntos_oficios
 )
 
 
 @st.cache_data(ttl=300, show_spinner=False)
 def _carregar_todas_referencias():
+    # Cache refresh: 2026-04-08 19:10
     """Carrega todas as tabelas de referência de uma vez (cache 5 min)."""
     return {
         "servicos":        opcoes(carregar_servicos()),
         "operadores":      opcoes(carregar_operadores()),
         "areas_op":        opcoes(carregar_areas_operacionais()),
-        "areas_geo":       opcoes(carregar_areas_geograficas()),
         "tipos_sistema":   opcoes(carregar_tipos_sistema()),
         "tipos_veiculo":   opcoes(carregar_tipos_veiculo()),
-        "parametros":      opcoes(carregar_parametros()),
+        "parametros":      opcoes(carregar_parametros_novos()),
+        "caracteristicas": opcoes(carregar_caracteristicas()),
         "grupamentos":     opcoes(carregar_grupamentos()),
         "oficios":         opcoes(carregar_oficios()),
         "assuntos_oficios": carregar_assuntos_oficios(),
@@ -88,22 +90,19 @@ def render():
         st.divider()
         st.markdown("#### 🗂️ Classificação")
 
-        col6, col7, col8 = st.columns(3)
+        col6, col7 = st.columns(2)
         with col6:
             area_op_id       = _selectbox("Área Operacional", refs["areas_op"])
         with col7:
-            area_geo_id      = _selectbox("Área Geográfica", refs["areas_geo"])
-        with col8:
             tipo_sistema_id  = _selectbox("Tipo de Sistema", refs["tipos_sistema"])
 
-        col9, col10, col11 = st.columns(3)
+        col8, col9, col10 = st.columns(3)
+        with col8:
+            parametro_id     = _selectbox("Parâmetro", refs["parametros"])
         with col9:
-            parametro_id     = _selectbox("Parâmetro Funcional", refs["parametros"])
+            caracteristica_id = _selectbox("Característica", refs["caracteristicas"])
         with col10:
             grupamento_label = _selectbox("Grupamento BRS", refs["grupamentos"])
-        with col11:
-            classificacaoEspacial = st.text_input("Classificação Espacial",
-                                                   placeholder="Ex: Urbano, Suburbano")
 
         # ── Quilometragem ────────────────────────────────────────
         st.divider()
@@ -122,7 +121,7 @@ def render():
         st.markdown("#### 📄 Ofícios")
         st.info("ℹ️ O Ofício selecionado abaixo será registrado automaticamente como o **Primeiro Histórico** e como a **Última Alteração** desta linha inicialmente.")
 
-        oficio_id = _selectbox("Ofício Principal", refs["oficios"])
+        oficio_id = _selectbox("Ofício de Criação", refs["oficios"])
         if oficio_id:
             st.info(f"ℹ️ **Assunto:** {refs['assuntos_oficios'].get(oficio_id, 'Sem assunto')}")
 
@@ -148,18 +147,20 @@ def render():
         tabR, tabA = st.tabs(["Itinerário Regular", "Itinerário Alternativo"])
         
         with tabR:
-            colIr1, colIr2 = st.columns(2)
-            with colIr1:
-                df_reg_ida = _itinerario_editor("Ida", "reg_ida")
-            with colIr2:
-                df_reg_volta = _itinerario_editor("Volta", "reg_volta")
+            it_reg_oficio_id = _selectbox("Ofício de Autorização (Regular)", refs["oficios"])
+            if it_reg_oficio_id:
+                 st.caption(f"**Assunto:** {refs['assuntos_oficios'].get(it_reg_oficio_id, 'Sem assunto')}")
+            df_reg_ida = _itinerario_editor("Ida", "reg_ida")
+            st.write("") # Espaçador
+            df_reg_volta = _itinerario_editor("Volta", "reg_volta")
                 
         with tabA:
-            colIa1, colIa2 = st.columns(2)
-            with colIa1:
-                df_alt_ida = _itinerario_editor("Ida", "alt_ida")
-            with colIa2:
-                df_alt_volta = _itinerario_editor("Volta", "alt_volta")
+            it_alt_oficio_id = _selectbox("Ofício de Autorização (Alternativo)", refs["oficios"])
+            if it_alt_oficio_id:
+                 st.caption(f"**Assunto:** {refs['assuntos_oficios'].get(it_alt_oficio_id, 'Sem assunto')}")
+            df_alt_ida = _itinerario_editor("Ida", "alt_ida")
+            st.write("") # Espaçador
+            df_alt_volta = _itinerario_editor("Volta", "alt_volta")
 
         # ── Observação ───────────────────────────────────────────
         st.divider()
@@ -202,17 +203,17 @@ def render():
             "tipoSistema":              tipo_sistema_id,
             "kmIDA":                    kmIDA,
             "kmVOLTA":                  kmVOLTA,
-            "areaGeografica":           area_geo_id,
-            "classificacaoEspacial":    classificacaoEspacial,
-            "parametro":                parametro_id,
-            "grupamentoBRS":            refs["grupamentos"].get(
-                                            next((k for k, v in refs["grupamentos"].items()
-                                                  if v == grupamento_label), ""), None
-                                        ) if grupamento_label else None,
+            "parametro_novo":           parametro_id,
+            "caracteristica":           caracteristica_id,
+            "grupamentoBRS":            grupamento_label,
             "frotaUltimoOficio":        frota_ultimo_oficio_id,
             "frotaDataOficio":          str(frotaDataOficio) if frotaDataOficio else None,
             "observacao":               observacao,
-            "itinerarios":              [] # Será preenchido abaixo
+            "itinerarios":              [], # Será preenchido abaixo
+            "itinerarios_oficios": {
+                "R": it_reg_oficio_id,
+                "A": it_alt_oficio_id
+            }
         }
 
         # Processar Itinerários das tabelas

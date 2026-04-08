@@ -12,6 +12,7 @@ from db import (
 
 @st.cache_data(ttl=300, show_spinner=False)
 def _refs_consulta():
+    # Force refresh: 2026-04-08 19:12
     return {
         "areas_op":      opcoes(carregar_areas_operacionais()),
         "operadores":    opcoes(carregar_operadores()),

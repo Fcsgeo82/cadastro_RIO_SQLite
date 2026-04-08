@@ -14,10 +14,6 @@ def init_db():
     
     # Definição das tabelas e campos (Schema)
     tables = {
-        "AreaGeograficaOperacao": [
-            "areaGeograficaOperacaoID TEXT PRIMARY KEY",
-            "area TEXT"
-        ],
         "AreaOperacional": [
             "areaOperacionalID TEXT PRIMARY KEY",
             "codigo INTEGER",
@@ -43,16 +39,18 @@ def init_db():
     "tipoSistema TEXT",
     "kmIDA REAL",
     "kmVOLTA REAL",
-    "areaGeografica TEXT",
-    "classificacaoEspacial TEXT",
-    "parametro TEXT",
+    "parametro_novo TEXT",
+    "caracteristica TEXT",
     "grupamentoBRS INTEGER",
     "frotaTipoVeiculo TEXT",
     "frotaUltimoOficio TEXT",
     "frotaDataOficio TEXT",
     "observacao TEXT",
     "dataCadastro TIMESTAMP",
-    "ultimaAtualizacao TIMESTAMP"
+    "ultimaAtualizacao TIMESTAMP",
+    "areaGeografica TEXT",
+    "classificacaoEspacial TEXT",
+    "parametro TEXT"
 ],
         "Oficio": [
             "oficioID TEXT PRIMARY KEY",
@@ -63,9 +61,13 @@ def init_db():
             "dataCadastro TIMESTAMP",
             "linha TEXT"
         ],
-        "ParametroFuncional": [
-            "parametroFuncionalID TEXT PRIMARY KEY",
-            "parametro TEXT"
+        "Parametro": [
+            "parametroID TEXT PRIMARY KEY",
+            "descricao TEXT"
+        ],
+        "Caracteristica": [
+            "caracteristicaID TEXT PRIMARY KEY",
+            "descricao TEXT"
         ],
         "Servico": [
             "servicoID TEXT PRIMARY KEY",
@@ -98,7 +100,8 @@ def init_db():
     "logradouro TEXT",
     "bairro TEXT",
     "observacao TEXT",
-    "tipo TEXT"
+    "tipo TEXT",
+    "oficio TEXT"
 ],
 "Operador": [
     "operadorID TEXT PRIMARY KEY",
@@ -159,18 +162,30 @@ def init_db():
             """, (user_id, u["username"], pwd_hash, u["role"], u["email"]))
         
         print("Usuários iniciais inseridos.")
+
+    # Popular Parametro e Caracteristica se estiverem vazios
+    cursor.execute("SELECT COUNT(*) FROM Parametro")
+    if cursor.fetchone()[0] == 0:
+        p_data = [('Polarizada',), ('Inter-Região',), ('Intra-Região',)]
+        for p in p_data:
+            cursor.execute("INSERT INTO Parametro (parametroID, descricao) VALUES (?, ?)", (str(uuid.uuid4()), p[0]))
+            
+    cursor.execute("SELECT COUNT(*) FROM Caracteristica")
+    if cursor.fetchone()[0] == 0:
+        c_data = [('Alimentadora',), ('Inter-Bairro',)]
+        for c in c_data:
+            cursor.execute("INSERT INTO Caracteristica (caracteristicaID, descricao) VALUES (?, ?)", (str(uuid.uuid4()), c[0]))
     
     conn.commit()
     conn.close()
     print("-" * 30)
     print(f"Banco de dados {DB_NAME} inicializado com sucesso.")
-    print("Estrutura montada conforme Schema.csv.")
 
 def populate_from_csv():
     """Lê o arquivo Schema BQ - TABELAS.csv e popula o banco de dados."""
     CSV_FILE = "Schema BQ - TABELAS.csv"
     if not os.path.exists(CSV_FILE):
-        print(f"Erro: Arquivo {CSV_FILE} não encontrado.")
+        print(f"Erro: Arquivo {CSV_FILE} not encontrado.")
         return
 
     conn = sqlite3.connect(DB_NAME)
@@ -222,6 +237,10 @@ def populate_from_csv():
             
         # Pular linhas de dados que estão vazias (ex: ",,,")
         if not any(data):
+            continue
+
+        # Evitar inserir em tabelas que mudaram significativamente e não estão no CSV original corretamente
+        if current_table in ["Linha", "Parametro", "Caracteristica"]:
             continue
             
         placeholders = ', '.join(['?'] * len(headers))
