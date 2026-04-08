@@ -80,25 +80,7 @@ def render(linha_id: str):
         "oficio": dados.get("oficioprimeiroHistorico"),
     })
     
-    # 2. Itinerário Ida
-    if dados.get("itinerarioIdaOficio"):
-        events.append({
-            "tipo": "🗺️ Alteração Itinerário Ida",
-            "data_raw": dados.get("itinerarioIdaData"),
-            "date_obj": parse_date(dados.get("itinerarioIdaData")),
-            "oficio": dados.get("itinerarioIdaOficio"),
-        })
-
-    # 3. Itinerário Volta
-    if dados.get("itinerarioVoltaOficio"):
-        events.append({
-            "tipo": "🗺️ Alteração Itinerário Volta",
-            "data_raw": dados.get("itinerarioVoltaData"),
-            "date_obj": parse_date(dados.get("itinerarioVoltaData")),
-            "oficio": dados.get("itinerarioVoltaOficio"),
-        })
-
-    # 4. Frota
+    # 2. Frota
     if dados.get("frotaUltimoOficio"):
         events.append({
             "tipo": "🚍 Alteração de Frota",
@@ -107,7 +89,7 @@ def render(linha_id: str):
             "oficio": dados.get("frotaUltimoOficio"),
         })
 
-    # 5. Última Modificação
+    # 3. Última Modificação
     events.append({
         "tipo": "💾 Última Modificação Geral",
         "data_raw": dados.get("ultimaAtualizacao"),

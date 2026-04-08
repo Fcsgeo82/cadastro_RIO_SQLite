@@ -4,6 +4,7 @@
 # =============================================================
 
 import streamlit as st
+import pandas as pd
 from db import (
     inserir_linha, opcoes,
     carregar_servicos, carregar_operadores,
@@ -36,6 +37,23 @@ def _selectbox(label: str, opcoes_dict: dict, obrigatorio: bool = False) -> str 
     rotulos = ["— selecione —"] + list(opcoes_dict.keys())
     sel     = st.selectbox(label + sufixo, rotulos)
     return opcoes_dict.get(sel)  # None se "— selecione —"
+
+
+def _itinerario_editor(titulo: str, key: str):
+    """Renderiza um st.data_editor configurado para pontos de itinerário."""
+    df_init = pd.DataFrame(columns=["Logradouro", "Complemento", "Bairro"])
+    st.markdown(f"**{titulo}**")
+    return st.data_editor(
+        df_init,
+        num_rows="dynamic",
+        use_container_width=True,
+        key=key,
+        column_config={
+            "Logradouro": st.column_config.TextColumn("Logradouro", width="large", required=True),
+            "Complemento": st.column_config.TextColumn("Complemento", width="medium"),
+            "Bairro": st.column_config.TextColumn("Bairro", width="medium"),
+        }
+    )
 
 
 def render():
@@ -122,35 +140,30 @@ def render():
         with col19:
             frotaDataOficio = st.date_input("Data do Ofício da Frota", value=None)
 
-        # ── Itinerário ───────────────────────────────────────────
+        # ── Itinerários ──────────────────────────────────────────
         st.divider()
-        st.markdown("#### 🗺️ Itinerário")
-
-        col20, col21, col22 = st.columns(3)
-        with col20:
-            itinerarioIDA        = st.text_area("Itinerário IDA",   height=80,
-                                                 placeholder="Descrição do itinerário de ida")
-        with col21:
-            itIda_oficio_id      = _selectbox("Ofício do Itin. IDA", refs["oficios"])
-            if itIda_oficio_id:
-                st.caption(f"**Assunto:** {refs['assuntos_oficios'].get(itIda_oficio_id, 'Sem assunto')}")
-        with col22:
-            itIda_data           = st.date_input("Data Itin. IDA", value=None)
-
-        col23, col24, col25 = st.columns(3)
-        with col23:
-            itinerarioVOLTA      = st.text_area("Itinerário VOLTA", height=80,
-                                                 placeholder="Descrição do itinerário de volta")
-        with col24:
-            itVolta_oficio_id    = _selectbox("Ofício do Itin. VOLTA", refs["oficios"])
-            if itVolta_oficio_id:
-                st.caption(f"**Assunto:** {refs['assuntos_oficios'].get(itVolta_oficio_id, 'Sem assunto')}")
-        with col25:
-            itVolta_data         = st.date_input("Data Itin. VOLTA", value=None)
+        st.markdown("#### 🗺️ Itinerários")
+        st.info("💡 Preencha as tabelas com os pontos do itinerário. 'Complemento' será salvo como observação do ponto.")
+        
+        tabR, tabA = st.tabs(["Itinerário Regular", "Itinerário Alternativo"])
+        
+        with tabR:
+            colIr1, colIr2 = st.columns(2)
+            with colIr1:
+                df_reg_ida = _itinerario_editor("Ida", "reg_ida")
+            with colIr2:
+                df_reg_volta = _itinerario_editor("Volta", "reg_volta")
+                
+        with tabA:
+            colIa1, colIa2 = st.columns(2)
+            with colIa1:
+                df_alt_ida = _itinerario_editor("Ida", "alt_ida")
+            with colIa2:
+                df_alt_volta = _itinerario_editor("Volta", "alt_volta")
 
         # ── Observação ───────────────────────────────────────────
         st.divider()
-        observacao = st.text_area("📝 Observação", height=80,
+        observacao = st.text_area("📝 Observação Geral", height=80,
                                    placeholder="Observações gerais sobre a linha")
 
         # ── Submit ───────────────────────────────────────────────
@@ -196,17 +209,34 @@ def render():
                                             next((k for k, v in refs["grupamentos"].items()
                                                   if v == grupamento_label), ""), None
                                         ) if grupamento_label else None,
-            "frotaTipoVeiculo":         frota_tipo_veiculo_id,
             "frotaUltimoOficio":        frota_ultimo_oficio_id,
             "frotaDataOficio":          str(frotaDataOficio) if frotaDataOficio else None,
-            "itinerarioIDA":            itinerarioIDA,
-            "itinerarioIdaOficio":      itIda_oficio_id,
-            "itinerarioIdaData":        str(itIda_data) if itIda_data else None,
-            "itinerarioVOLTA":          itinerarioVOLTA,
-            "itinerarioVoltaOficio":    itVolta_oficio_id,
-            "itinerarioVoltaData":      str(itVolta_data) if itVolta_data else None,
             "observacao":               observacao,
+            "itinerarios":              [] # Será preenchido abaixo
         }
+
+        # Processar Itinerários das tabelas
+        all_itinerarios = []
+        
+        def processar_df(df, tipo, sentido):
+            if df is not None and not df.empty:
+                for idx, row in df.iterrows():
+                    if row.get("Logradouro"): # Só adiciona se tiver logradouro
+                        all_itinerarios.append({
+                            "tipo": tipo,
+                            "sentido": sentido,
+                            "ordem": idx,
+                            "logradouro": row["Logradouro"],
+                            "bairro": row.get("Bairro", ""),
+                            "observacao": row.get("Complemento", "")
+                        })
+
+        processar_df(df_reg_ida, "R", "0")
+        processar_df(df_reg_volta, "R", "1")
+        processar_df(df_alt_ida, "A", "0")
+        processar_df(df_alt_volta, "A", "1")
+        
+        dados["itinerarios"] = all_itinerarios
 
         with st.spinner("Salvando no SQLite..."):
             sucesso, mensagem = inserir_linha(dados)

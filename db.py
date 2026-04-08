@@ -189,12 +189,6 @@ def inserir_linha(dados: dict) -> tuple[bool, str]:
         "frotaTipoVeiculo":      dados.get("frotaTipoVeiculo") or None,
         "frotaUltimoOficio":     dados.get("frotaUltimoOficio") or None,
         "frotaDataOficio":       dados.get("frotaDataOficio") or None,
-        "itinerarioIDA":         dados.get("itinerarioIDA", "").strip() or None,
-        "itinerarioIdaOficio":   dados.get("itinerarioIdaOficio") or None,
-        "itinerarioIdaData":     dados.get("itinerarioIdaData") or None,
-        "itinerarioVOLTA":       dados.get("itinerarioVOLTA", "").strip() or None,
-        "itinerarioVoltaOficio": dados.get("itinerarioVoltaOficio") or None,
-        "itinerarioVoltaData":   dados.get("itinerarioVoltaData") or None,
         "observacao":            dados.get("observacao", "").strip() or None,
         "dataCadastro":          agora,
         "ultimaAtualizacao":     agora,
@@ -205,11 +199,19 @@ def inserir_linha(dados: dict) -> tuple[bool, str]:
     sql = f"INSERT INTO Linha ({cols}) VALUES ({placeholders})"
 
     try:
-        conn.execute(sql, list(row.values()))
+        cursor = conn.cursor()
+        cursor.execute(sql, list(row.values()))
+        
+        # Inserir Itinerários se fornecidos
+        itinerarios = dados.get("itinerarios", [])
+        if itinerarios:
+            salvar_itinerarios(cursor, row["linhaID"], itinerarios)
+            
         conn.commit()
         conn.close()
         return True, f"Linha {row['numeroLinha']} cadastrada com sucesso!"
     except Exception as e:
+        conn.rollback()
         conn.close()
         return False, f"Erro ao inserir no SQLite: {e}"
 
@@ -306,11 +308,42 @@ def obter_linha_por_id(linha_id: str) -> dict:
         row = cursor.fetchone()
         conn.close()
         if row:
-            return dict(row)
+            d = dict(row)
+            # Buscar itinerários associados
+            d["itinerarios"] = obter_itinerarios(linha_id)
+            return d
         return {}
     except Exception as e:
         print(f"Erro ao obter linha: {e}")
         return {}
+
+def obter_itinerarios(linha_id: str) -> list[dict]:
+    """Retorna lista de dicionários com os pontos do itinerário da linha."""
+    df = _query_df("SELECT * FROM Itinerario WHERE linhaRefID = ? ORDER BY tipo, sentido, ordem", [linha_id])
+    return df.to_dict("records")
+
+def salvar_itinerarios(cursor, linha_id: str, itinerarios: list[dict]):
+    """Helper para salvar (deletar e inserir) itinerários de uma linha em uma transação."""
+    # Deleta existentes primeiro
+    cursor.execute("DELETE FROM Itinerario WHERE linhaRefID = ?", (linha_id,))
+    
+    # Inserir novos
+    for i, it in enumerate(itinerarios):
+        # Campos: itinerarioID, linhaRefID, sentido, ordem, logradouro, bairro, observacao, tipo
+        sql_it = """
+            INSERT INTO Itinerario (itinerarioID, linhaRefID, sentido, ordem, logradouro, bairro, observacao, tipo)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        cursor.execute(sql_it, (
+            str(uuid.uuid4()),
+            linha_id,
+            str(it.get("sentido", "0")),
+            it.get("ordem", i),
+            it.get("logradouro", ""),
+            it.get("bairro", ""),
+            it.get("observacao", ""),
+            it.get("tipo", "R")
+        ))
 
 def atualizar_linha(linha_id: str, dados: dict) -> tuple[bool, str]:
     """Atualiza uma linha existente e atualiza_ultimaAtualizacao."""
@@ -339,12 +372,6 @@ def atualizar_linha(linha_id: str, dados: dict) -> tuple[bool, str]:
         "frotaTipoVeiculo":      dados.get("frotaTipoVeiculo") or None,
         "frotaUltimoOficio":     dados.get("frotaUltimoOficio") or None,
         "frotaDataOficio":       dados.get("frotaDataOficio") or None,
-        "itinerarioIDA":         dados.get("itinerarioIDA", "").strip() or None,
-        "itinerarioIdaOficio":   dados.get("itinerarioIdaOficio") or None,
-        "itinerarioIdaData":     dados.get("itinerarioIdaData") or None,
-        "itinerarioVOLTA":       dados.get("itinerarioVOLTA", "").strip() or None,
-        "itinerarioVoltaOficio": dados.get("itinerarioVoltaOficio") or None,
-        "itinerarioVoltaData":   dados.get("itinerarioVoltaData") or None,
         "observacao":            dados.get("observacao", "").strip() or None,
         "ultimaAtualizacao":     agora,
     }
@@ -356,11 +383,18 @@ def atualizar_linha(linha_id: str, dados: dict) -> tuple[bool, str]:
     sql = f"UPDATE Linha SET {set_clause} WHERE linhaID = ?"
     
     try:
-        conn.execute(sql, values)
+        cursor = conn.cursor()
+        cursor.execute(sql, values)
+        
+        # Atualizar Itinerários
+        if "itinerarios" in dados:
+            salvar_itinerarios(cursor, linha_id, dados["itinerarios"])
+            
         conn.commit()
         conn.close()
         return True, f"Linha {row['numeroLinha']} atualizada com sucesso!"
     except Exception as e:
+        conn.rollback()
         conn.close()
         return False, f"Erro ao atualizar no SQLite: {e}"
 

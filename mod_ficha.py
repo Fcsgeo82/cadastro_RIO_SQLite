@@ -74,11 +74,31 @@ def render(linha_id: str):
             v_frota_data = v_frota_data[8:10] + "/" + v_frota_data[5:7] + "/" + v_frota_data[0:4]
     else: v_frota_data = '-'
 
-    v_itida_of_raw = _of_raw_lbl(dados.get('itinerarioIdaOficio'))
-    v_itida_it = dados.get('itinerarioIDA') or '-'
+    # Processamento de Itinerários para o HTML
+    it_lista = dados.get("itinerarios", [])
     
-    v_itvolta_of_raw = _of_raw_lbl(dados.get('itinerarioVoltaOficio'))
-    v_itvolta_it = dados.get('itinerarioVOLTA') or '-'
+    def _gerar_linhas_itinerario(tipo):
+        ida = [it for it in it_lista if it.get("tipo") == tipo and str(it.get("sentido")) == "0"]
+        volta = [it for it in it_lista if it.get("tipo") == tipo and str(it.get("sentido")) == "1"]
+        
+        ida = sorted(ida, key=lambda x: x.get("ordem", 0))
+        volta = sorted(volta, key=lambda x: x.get("ordem", 0))
+        
+        max_rows = max(len(ida), len(volta))
+        rows_html = ""
+        
+        if max_rows == 0:
+            return "<tr><td colspan='6' style='text-align:center; color:#888;'>Nenhum ponto registrado</td></tr>"
+            
+        for i in range(max_rows):
+            p_ida = ida[i] if i < len(ida) else {}
+            p_volta = volta[i] if i < len(volta) else {}
+            
+            rows_html += f"<tr><td>{p_ida.get('logradouro', '')}</td><td>{p_ida.get('observacao', '')}</td><td>{p_ida.get('bairro', '')}</td><td style='border-left: 2px solid #000;'>{p_volta.get('logradouro', '')}</td><td>{p_volta.get('observacao', '')}</td><td>{p_volta.get('bairro', '')}</td></tr>"
+        return rows_html
+
+    v_html_reg = _gerar_linhas_itinerario("R")
+    v_html_alt = _gerar_linhas_itinerario("A")
 
     logo_dir = os.path.dirname(os.path.abspath(__file__))
     logo_svg = os.path.join(logo_dir, "logo_rio.svg")
@@ -185,6 +205,9 @@ def render(linha_id: str):
         width: 20%;
         background: #f5f5f5;
     }}
+    .itinerario-table {{ width: calc(100% - 40px); margin: 0 20px 15px 20px; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 11px; }}
+    .itinerario-table th, .itinerario-table td {{ border: 1px solid #000; padding: 4px 6px; vertical-align: top; }}
+    .itinerario-table th {{ background: #f5f5f5; font-weight: bold; text-align: center; }}
     @media print {{
         body {{ padding: 0; }}
         .header-bar {{
@@ -268,30 +291,38 @@ def render(linha_id: str):
             </tr>
         </table>
         
-        <div class="flex-header">
-           <span>Itinerário de ida</span>
-           <span style="font-size:13px; font-weight:normal">Ofício de última alteração: <b>{v_itida_of_raw}</b></span>
-        </div>
-        <table class="data-table">
+        <div class="section-title">Itinerário Regular</div>
+        <table class="itinerario-table">
             <tr>
-                <th style="width: 15%">Tipo:</th><td colspan="3">{v_tipo}</td>
+                <th colspan="3">Itinerário de Ida</th>
+                <th colspan="3" style="border-left: 2px solid #000;">Itinerário de Volta</th>
             </tr>
             <tr>
-                <th style="width: 15%">Itinerário:</th><td colspan="3" style="text-align:justify">{v_itida_it}</td>
+                <th style="width: 20%;">Logradouro</th>
+                <th style="width: 15%;">Complemento</th>
+                <th style="width: 15%;">Bairro</th>
+                <th style="width: 20%; border-left: 2px solid #000;">Logradouro</th>
+                <th style="width: 15%;">Complemento</th>
+                <th style="width: 15%;">Bairro</th>
             </tr>
+            {v_html_reg}
         </table>
         
-        <div class="flex-header">
-           <span>Itinerário de volta</span>
-           <span style="font-size:13px; font-weight:normal">Ofício de última alteração: <b>{v_itvolta_of_raw}</b></span>
-        </div>
-        <table class="data-table">
+        <div class="section-title">Itinerário Alternativo</div>
+        <table class="itinerario-table">
             <tr>
-                <th style="width: 15%">Tipo:</th><td colspan="3">{v_tipo}</td>
+                <th colspan="3">Itinerário de Ida</th>
+                <th colspan="3" style="border-left: 2px solid #000;">Itinerário de Volta</th>
             </tr>
             <tr>
-                <th style="width: 15%">Itinerário:</th><td colspan="3" style="text-align:justify">{v_itvolta_it}</td>
+                <th style="width: 20%;">Logradouro</th>
+                <th style="width: 15%;">Complemento</th>
+                <th style="width: 15%;">Bairro</th>
+                <th style="width: 20%; border-left: 2px solid #000;">Logradouro</th>
+                <th style="width: 15%;">Complemento</th>
+                <th style="width: 15%;">Bairro</th>
             </tr>
+            {v_html_alt}
         </table>
     </div>
     </body>
