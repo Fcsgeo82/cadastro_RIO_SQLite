@@ -7,16 +7,22 @@ import streamlit as st
 from db import (
     consultar_linhas, opcoes,
     carregar_areas_operacionais, carregar_operadores, carregar_tipos_sistema,
+    carregar_caracteristicas, carregar_parametros_novos, carregar_tipos_veiculo,
+    carregar_grupamentos
 )
 
 
 @st.cache_data(ttl=300, show_spinner=False)
 def _refs_consulta():
-    # Force refresh: 2026-04-08 19:12
+    # Force refresh: 2026-04-08 20:00
     return {
-        "areas_op":      opcoes(carregar_areas_operacionais()),
-        "operadores":    opcoes(carregar_operadores()),
-        "tipos_sistema": opcoes(carregar_tipos_sistema()),
+        "areas_op":       opcoes(carregar_areas_operacionais()),
+        "operadores":     opcoes(carregar_operadores()),
+        "tipos_sistema":  opcoes(carregar_tipos_sistema()),
+        "caracteristicas": opcoes(carregar_caracteristicas()),
+        "parametros":     opcoes(carregar_parametros_novos()),
+        "tipos_veiculo":  opcoes(carregar_tipos_veiculo()),
+        "grupamentos":    opcoes(carregar_grupamentos()),
     }
 
 
@@ -27,23 +33,44 @@ def render():
     refs = _refs_consulta()
 
     # ── Filtros ──────────────────────────────────────────────────
-    col1, col2 = st.columns([1, 3])
+    col_busca, _ = st.columns([2, 1])
+    with col_busca:
+        filtro_geral = st.text_input("🔍 Busca Geral (Qualquer campo)", placeholder="Ex: nome de rua, bairro, operador...")
+
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         filtro_numero = st.text_input("Número da Linha", placeholder="Ex: 474")
-
-    col3, col4, col5 = st.columns(3)
-    with col3:
+    with col2:
         area_op_labels  = ["Todas"] + list(refs["areas_op"].keys())
         sel_area        = st.selectbox("Área Operacional", area_op_labels)
         area_op_id      = refs["areas_op"].get(sel_area, "")
-    with col4:
+    with col3:
         op_labels       = ["Todos"] + list(refs["operadores"].keys())
         sel_op          = st.selectbox("Operador", op_labels)
         operador_id     = refs["operadores"].get(sel_op, "")
-    with col5:
+    with col4:
         ts_labels       = ["Todos"] + list(refs["tipos_sistema"].keys())
         sel_ts          = st.selectbox("Tipo de Sistema", ts_labels)
         tipo_sistema_id = refs["tipos_sistema"].get(sel_ts, "")
+
+    # Segunda linha de filtros
+    col5, col6, col7, col8 = st.columns(4)
+    with col5:
+        param_labels    = ["Todos"] + list(refs["parametros"].keys())
+        sel_param       = st.selectbox("Parâmetro", param_labels)
+        parametro_id    = refs["parametros"].get(sel_param, "")
+    with col6:
+        char_labels     = ["Todas"] + list(refs["caracteristicas"].keys())
+        sel_char        = st.selectbox("Característica", char_labels)
+        caracteristica_id = refs["caracteristicas"].get(sel_char, "")
+    with col7:
+        tv_labels       = ["Todos"] + list(refs["tipos_veiculo"].keys())
+        sel_tv          = st.selectbox("Frota Autorizada", tv_labels)
+        frota_v_id      = refs["tipos_veiculo"].get(sel_tv, "")
+    with col8:
+        grup_labels     = ["Todos"] + list(refs["grupamentos"].keys())
+        sel_grup        = st.selectbox("Grupamento BRS", grup_labels)
+        grupamento_id   = refs["grupamentos"].get(sel_grup, "")
 
     col_b1, col_b2, _ = st.columns([1, 1, 4])
     with col_b1:
@@ -61,6 +88,11 @@ def render():
                 area_operacional_id = area_op_id,
                 operador_id         = operador_id,
                 tipo_sistema_id     = tipo_sistema_id,
+                termo_geral         = filtro_geral,
+                caracteristica_id   = caracteristica_id,
+                parametro_id        = parametro_id,
+                frota_tipo_veiculo_id = frota_v_id,
+                grupamento_brs_id   = grupamento_id,
             )
         st.session_state["resultado_consulta"] = df
 

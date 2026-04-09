@@ -46,29 +46,40 @@ def _feedback(sucesso: bool, mensagem: str):
 # FORMULÁRIOS — um por tabela
 # ------------------------------------------------------------------
 
-def _form_area_geografica():
-    st.markdown("**Campos:** Área (nome), Número Inicial e Número Final do intervalo.")
-    with st.form("form_area_geo", clear_on_submit=True):
-        area          = st.text_input("Área *", placeholder="Ex: Zona Norte")
-        col1, col2    = st.columns(2)
-        with col1:
-            num_inicial = st.number_input("Número Inicial", min_value=0, value=None)
-        with col2:
-            num_final   = st.number_input("Número Final",   min_value=0, value=None)
+def _form_parametro():
+    st.markdown("**Campos:** Descrição do parâmetro.")
+    with st.form("form_parametro", clear_on_submit=True):
+        descricao = st.text_input("Descrição *", placeholder="Ex: Polarizada")
         submitted = st.form_submit_button("💾 Salvar", type="primary",
                                           width='stretch')
 
     if submitted:
-        if not area.strip():
-            st.error("⚠️ O campo Área é obrigatório.")
+        if not descricao.strip():
+            st.error("⚠️ O campo Descrição é obrigatório.")
             return
         row = {
-            "areaGeograficaOperacaoID": str(uuid.uuid4()),
-            "area":          area.strip(),
-            "numeroInicial": int(num_inicial) if num_inicial is not None else None,
-            "numeroFinal":   int(num_final)   if num_final   is not None else None,
+            "parametroID": str(uuid.uuid4()),
+            "descricao":   descricao.strip(),
         }
-        _feedback(*_inserir("AreaGeograficaOperacao", row))
+        _feedback(*_inserir("Parametro", row))
+
+
+def _form_caracteristica():
+    st.markdown("**Campos:** Descrição da característica.")
+    with st.form("form_caracteristica", clear_on_submit=True):
+        descricao = st.text_input("Descrição *", placeholder="Ex: Alimentadora")
+        submitted = st.form_submit_button("💾 Salvar", type="primary",
+                                          width='stretch')
+
+    if submitted:
+        if not descricao.strip():
+            st.error("⚠️ O campo Descrição é obrigatório.")
+            return
+        row = {
+            "caracteristicaID": str(uuid.uuid4()),
+            "descricao":        descricao.strip(),
+        }
+        _feedback(*_inserir("Caracteristica", row))
 
 
 def _form_area_operacional():
@@ -154,22 +165,7 @@ def _form_oficio():
         _feedback(*_inserir("Oficio", row))
 
 
-def _form_parametro_funcional():
-    st.markdown("**Campos:** Nome do parâmetro funcional.")
-    with st.form("form_parametro", clear_on_submit=True):
-        parametro = st.text_input("Parâmetro *", placeholder="Ex: Padrão Básico")
-        submitted = st.form_submit_button("💾 Salvar", type="primary",
-                                          width='stretch')
-
-    if submitted:
-        if not parametro.strip():
-            st.error("⚠️ O campo Parâmetro é obrigatório.")
-            return
-        row = {
-            "parametroFuncionalID": str(uuid.uuid4()),
-            "parametro":            parametro.strip(),
-        }
-        _feedback(*_inserir("ParametroFuncional", row))
+# _form_parametro_funcional removido (substituído por _form_parametro)
 
 
 def _form_servico():
@@ -295,15 +291,15 @@ def _form_operador():
 # ------------------------------------------------------------------
 
 TABELAS = {
-    "Área Geográfica de Operação": {
-        "form":     _form_area_geografica,
-        "icone":    "🗺️",
-        "tabela":   "AreaGeograficaOperacao",
-    },
     "Área Operacional": {
         "form":     _form_area_operacional,
         "icone":    "📍",
         "tabela":   "AreaOperacional",
+    },
+    "Característica": {
+        "form":     _form_caracteristica,
+        "icone":    "✨",
+        "tabela":   "Caracteristica",
     },
     "Grupamento BRS": {
         "form":     _form_grupamento_brs,
@@ -315,10 +311,15 @@ TABELAS = {
         "icone":    "📄",
         "tabela":   "Oficio",
     },
-    "Parâmetro Funcional": {
-        "form":     _form_parametro_funcional,
+    "Operador": {
+        "form":     _form_operador,
+        "icone":    "🏢",
+        "tabela":   "operador",
+    },
+    "Parâmetro": {
+        "form":     _form_parametro,
         "icone":    "⚙️",
-        "tabela":   "ParametroFuncional",
+        "tabela":   "Parametro",
     },
     "Serviço": {
         "form":     _form_servico,
@@ -334,11 +335,6 @@ TABELAS = {
         "form":     _form_tipo_veiculo,
         "icone":    "🚌",
         "tabela":   "TipoVeiculo",
-    },
-    "Operador": {
-        "form":     _form_operador,
-        "icone":    "🏢",
-        "tabela":   "operador",
     },
 }
 

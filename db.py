@@ -236,10 +236,16 @@ def consultar_linhas(
     area_operacional_id: str = "",
     operador_id: str = "",
     tipo_sistema_id: str = "",
+    termo_geral: str = "",
+    caracteristica_id: str = "",
+    parametro_id: str = "",
+    frota_tipo_veiculo_id: str = "",
+    grupamento_brs_id: str = "",
 ) -> pd.DataFrame:
     """Consulta linhas com filtros e retorna DataFrame enriquecido com JOINs."""
     condicoes = ["1=1"]
     params = []
+    
     if numero.strip():
         condicoes.append("CAST(l.numeroLinha AS TEXT) LIKE ?")
         params.append(f"%{numero.strip()}%")
@@ -252,6 +258,39 @@ def consultar_linhas(
     if tipo_sistema_id:
         condicoes.append("l.tipoSistema = ?")
         params.append(tipo_sistema_id)
+    if caracteristica_id:
+        condicoes.append("l.caracteristica = ?")
+        params.append(caracteristica_id)
+    if parametro_id:
+        condicoes.append("l.parametro_novo = ?")
+        params.append(parametro_id)
+    if frota_tipo_veiculo_id:
+        condicoes.append("l.frotaTipoVeiculo = ?")
+        params.append(frota_tipo_veiculo_id)
+    if grupamento_brs_id:
+        condicoes.append("l.grupamentoBRS = ?")
+        params.append(grupamento_brs_id)
+        
+    if termo_geral.strip():
+        termo = f"%{termo_geral.strip()}%"
+        # Busca abrangente em múltiplos campos (inclusive via JOINs)
+        cond_geral = """
+            (l.numeroLinha LIKE ? OR 
+             l.vista LIKE ? OR 
+             l.via LIKE ? OR 
+             l.observacao LIKE ? OR 
+             l.areaGeografica LIKE ? OR 
+             l.classificacaoEspacial LIKE ? OR 
+             l.parametro LIKE ? OR
+             s.descricao LIKE ? OR
+             op.nomeFantasia LIKE ? OR
+             ao.descricao LIKE ? OR
+             ts.descricao LIKE ? OR
+             p.descricao LIKE ? OR
+             c.descricao LIKE ?)
+        """
+        condicoes.append(cond_geral)
+        params.extend([termo] * 13)
 
     where = " AND ".join(condicoes)
 

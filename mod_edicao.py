@@ -146,10 +146,12 @@ def render(linha_id: str):
         # ── Ofícios ──────────────────────────────────────────────
         st.divider()
         st.markdown("#### 📄 Ofícios")
-        st.info("ℹ️ A Atualização da *Última Alteração* será feita automaticamente caso novos ofícios sejam associados à frota ou ao itinerário nesta modificação.")
+        st.info("ℹ️ A Atualização da *Última Alteração* será feita automaticamente caso novos ofícios sejam associados à frota, ao itinerário ou à alteração especial nesta modificação.")
         col15, col16 = st.columns(2)
         with col15:
-            oficio_prim_hist_id = _selectbox("Ofício — Primeiro Histórico", refs.get("oficios", {}), dados_bd.get("oficioprimeiroHistorico"))
+            # Primeiro histórico não pode ser alterado
+            st.text_input("Ofício — Primeiro Histórico", value=_obter_label(refs.get("oficios", {}), dados_bd.get("oficioprimeiroHistorico")) or "-", disabled=True)
+            oficio_prim_hist_id = dados_bd.get("oficioprimeiroHistorico")
             if oficio_prim_hist_id:
                 st.caption(f"**Assunto:** {refs.get('assuntos_oficios', {}).get(oficio_prim_hist_id, 'Sem assunto')}")
         with col16:
@@ -158,6 +160,13 @@ def render(linha_id: str):
             oficio_ult_alt_id = dados_bd.get("oficioUltimaAlteracao")
             if oficio_ult_alt_id:
                  st.caption(f"**Assunto:** {refs.get('assuntos_oficios', {}).get(oficio_ult_alt_id, 'Sem assunto')}")
+
+        # Nova linha para Alteração Especial
+        row_esp1, _ = st.columns([1, 1])
+        with row_esp1:
+            oficio_especial_id = _selectbox("Ofício — Alteração Especial (Opcional)", refs.get("oficios", {}), None)
+            if oficio_especial_id:
+                st.caption(f"**Assunto:** {refs.get('assuntos_oficios', {}).get(oficio_especial_id, 'Sem assunto')}")
 
         # ── Frota ────────────────────────────────────────────────
         st.divider()
@@ -234,9 +243,9 @@ def render(linha_id: str):
         
         if frota_ultimo_oficio_id and str(frota_ultimo_oficio_id) != str(dados_bd.get("frotaUltimoOficio") or ""):
             oficios_alterados.append(str(frota_ultimo_oficio_id))
-            
-        if oficio_id and str(oficio_id) != str(dados_bd.get("oficio") or ""):
-            oficios_alterados.append(str(oficio_id))
+
+        if oficio_especial_id and str(oficio_especial_id) != str(dados_bd.get("oficio") or ""):
+            oficios_alterados.append(str(oficio_especial_id))
             
         if it_reg_oficio_id and str(it_reg_oficio_id) != str(it_reg_oficio_db or ""):
             oficios_alterados.append(str(it_reg_oficio_id))
@@ -266,7 +275,7 @@ def render(linha_id: str):
             "vista":                    vista,
             "via":                      via,
             "areaOperacional":          area_op_id,
-            "oficio":                   dados_bd.get("oficio"),
+            "oficio":                   dados_bd.get("oficio"), # Imutável após o cadastro
             "oficioprimeiroHistorico":  oficio_prim_hist_id,
             "oficioUltimaAlteracao":    oficio_ult_alt_id,
             "tipoSistema":              tipo_sistema_id,
