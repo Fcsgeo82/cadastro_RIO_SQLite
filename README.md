@@ -46,6 +46,8 @@ O sistema possui 3 tipos de usuários com permissões diferentes:
 | **editor** | Editor@123 | Consulta, Cadastro, Tabelas de Referência |
 | **user** | User@123 | Apenas Consulta |
 
+> ⚠️ As senhas iniciais acima devem ser alteradas após a inicialização do banco de dados, quando o usuário executar o arquivo app.py pela primeira vez. Trata-se de uma medida de segurança imediata e imprescindível para a proteção do sistema.
+
 > ⚠️ **Nota**: A senha inicial deve ser alterada conforme a política de segurança (mínimo 8 caracteres, 1 maiúscula, 1 número, 1 símbolo).
 
 ### Políticas de Segurança
