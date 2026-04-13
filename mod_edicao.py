@@ -94,9 +94,9 @@ def render(linha_id: str):
         st.markdown("#### 📋 Identificação")
         col1, col2, col3 = st.columns([1, 2, 2])
         with col1:
-            numeroLinha = st.text_input("Número da Linha *", value=dados_bd.get("numeroLinha") or "", disabled=True)
+            numeroLinha = st.text_input("Número da Linha *", value=dados_bd.get("numeroLinha") or "", disabled=False)
         with col2:
-            vista = st.text_input("Vista *", value=dados_bd.get("vista") or "", disabled=True)
+            vista = st.text_input("Vista *", value=dados_bd.get("vista") or "", disabled=False)
         with col3:
             dt = None
             if dados_bd.get("dataCriacaoLinha"):
@@ -108,13 +108,13 @@ def render(linha_id: str):
 
         colV1, colV2 = st.columns(2)
         with colV1:
-            via = st.text_input("Via", value=dados_bd.get("via") or "", disabled=True)
+            via = st.text_input("Via", value=dados_bd.get("via") or "", disabled=False)
 
         col4, col5 = st.columns(2)
         with col4:
             servico_label  = _selectbox("Serviço", refs.get("servicos", {}), dados_bd.get("servico"), obrigatorio=True, disabled=True)
         with col5:
-            operador_label = _selectbox("Operador", refs.get("operadores", {}), dados_bd.get("operador"), obrigatorio=True, disabled=True)
+            operador_label = _selectbox("Operador", refs.get("operadores", {}), dados_bd.get("operador"), obrigatorio=True, disabled=False)
 
         # ── Classificação ────────────────────────────────────────
         st.divider()
@@ -123,7 +123,7 @@ def render(linha_id: str):
         with col6:
             area_op_id       = _selectbox("Área Operacional", refs.get("areas_op", {}), dados_bd.get("areaOperacional"))
         with col7:
-            tipo_sistema_id  = _selectbox("Tipo de Sistema", refs.get("tipos_sistema", {}), dados_bd.get("tipoSistema"))
+            tipo_sistema_id  = _selectbox("Tipo de Operação", refs.get("tipos_sistema", {}), dados_bd.get("tipoSistema"))
 
         col8, col9, col10 = st.columns(3)
         with col8:
@@ -175,7 +175,7 @@ def render(linha_id: str):
         with col17:
             frota_tipo_veiculo_id  = _selectbox("Tipo de Veículo da Frota", refs.get("tipos_veiculo", {}), dados_bd.get("frotaTipoVeiculo"))
         with col18:
-            frota_ultimo_oficio_id = _selectbox("Último Ofício da Frota", refs.get("oficios", {}), dados_bd.get("frotaUltimoOficio"))
+            frota_ultimo_oficio_id = _selectbox("Ofício de Autorização da Frota", refs.get("oficios", {}), dados_bd.get("frotaUltimoOficio"))
             if frota_ultimo_oficio_id:
                 st.caption(f"**Assunto:** {refs.get('assuntos_oficios', {}).get(frota_ultimo_oficio_id, 'Sem assunto')}")
         with col19:

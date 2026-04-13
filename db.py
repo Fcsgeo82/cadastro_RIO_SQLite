@@ -12,6 +12,7 @@ from email.mime.text import MIMEText
 import pandas as pd
 import sqlite3
 from config import get_connection
+import streamlit as st
 
 
 def _query_df(sql: str, params: list = None) -> pd.DataFrame:
@@ -62,18 +63,17 @@ def carregar_operadores() -> pd.DataFrame:
 
 def carregar_areas_operacionais() -> pd.DataFrame:
     df = _query_df(f"""
-        SELECT areaOperacionalID, codigo, corReferencia, descricao
+        SELECT areaOperacionalID, codigo, corReferencia
         FROM AreaOperacional
         ORDER BY codigo
     """)
     if df.empty:
         return df
     
-    # Montar label: (codigo - corReferencia - descricao)
+    # Montar label: (codigo - corReferencia)
     df['label'] = (
         df['codigo'].astype(str) + " - " + 
-        df['corReferencia'].fillna("Sem Cor") + " - " + 
-        df['descricao']
+        df['corReferencia'].fillna("Sem Cor")
     )
     
     return df[['areaOperacionalID', 'label']].rename(columns={"areaOperacionalID": "id"})
@@ -463,11 +463,41 @@ def atualizar_linha(linha_id: str, dados: dict) -> tuple[bool, str]:
         conn.close()
         return False, f"Erro ao atualizar no SQLite: {e}"
 
-def excluir_linha(linha_id: str) -> tuple[bool, str]:
-    """Exclui uma linha pelo ID."""
+def excluir_linha(linha_id: str, oficio_exclusao: str = None) -> tuple[bool, str]:
+    """Exclui uma linha movendo para LinhaExcluida."""
     conn = get_connection()
+    agora = datetime.now(tz=timezone.utc).isoformat()
+    usuario = st.session_state.get("user", "sistema")
+    
     try:
-        conn.execute("DELETE FROM Linha WHERE linhaID = ?", (linha_id,))
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM Linha WHERE linhaID = ?", (linha_id,))
+        linha = cursor.fetchone()
+        if not linha:
+            conn.close()
+            return False, "Linha não encontrada."
+        
+        colunas_linha = [desc[0] for desc in cursor.description]
+        linha_dict = dict(zip(colunas_linha, linha))
+        
+        linhas_cols = ["linhaID", "numeroLinha", "dataCriacaoLinha", "servico", "operador", "vista", "via",
+                       "areaOperacional", "oficio", "oficioprimeiroHistorico", "oficioUltimaAlteracao",
+                       "tipoSistema", "kmIDA", "kmVOLTA", "parametro_novo", "caracteristica", "grupamentoBRS",
+                       "frotaTipoVeiculo", "frotaUltimoOficio", "frotaDataOficio", "observacao", "dataCadastro",
+                       "ultimaAtualizacao", "areaGeografica", "classificacaoEspacial", "parametro"]
+        
+        valores = [linha_dict.get(c) for c in linhas_cols]
+        valores.extend([oficio_exclusao, agora, usuario])
+        
+        insert_sql = f"""
+            INSERT INTO LinhaExcluida ({', '.join(linhas_cols)}, oficioExclusao, dataExclusao, usuarioExclusao)
+            VALUES ({', '.join(['?'] * len(valores))})
+        """
+        cursor.execute(insert_sql, valores)
+        
+        cursor.execute("DELETE FROM Linha WHERE linhaID = ?", (linha_id,))
+        
         conn.commit()
         conn.close()
         return True, "Linha excluída com sucesso!"
@@ -597,3 +627,91 @@ def get_user_email(username: str) -> str:
     """Pega email do user."""
     df = _query_df("SELECT email FROM Usuarios WHERE username = ?", [username])
     return df.iloc[0]["email"] if not df.empty else ""
+
+
+def consultar_linhas_excluidas(
+    numero: str = "",
+    area_operacional_id: str = "",
+    operador_id: str = "",
+) -> pd.DataFrame:
+    """Consulta linhas excluídas."""
+    condicoes = ["1=1"]
+    params = []
+    
+    if numero.strip():
+        condicoes.append("CAST(l.numeroLinha AS TEXT) LIKE ?")
+        params.append(f"%{numero.strip()}%")
+    if area_operacional_id:
+        condicoes.append("l.areaOperacional = ?")
+        params.append(area_operacional_id)
+    if operador_id:
+        condicoes.append("l.operador = ?")
+        params.append(operador_id)
+    
+    where = " AND ".join(condicoes)
+    
+    query = f"""
+        SELECT
+            l.linhaID,
+            l.numeroLinha                                                       AS `Número`,
+            l.vista                                                             AS `Vista`,
+            l.via                                                               AS `Via`,
+            s.descricao                                                         AS `Serviço`,
+            op.nomeFantasia                                                     AS `Operador`,
+            ao.descricao                                                        AS `Área Operacional`,
+            ts.descricao                                                        AS `Tipo Sistema`,
+            l.oficioExclusao                                                    AS `Ofício Exclusão`,
+            l.dataExclusao                                                      AS `Data Exclusão`,
+            l.usuarioExclusao                                                   AS `Usuário`
+        FROM LinhaExcluida l
+        LEFT JOIN Servico                s  ON l.servico         = s.servicoID
+        LEFT JOIN operador               op ON l.operador        = op.operadorID
+        LEFT JOIN AreaOperacional        ao ON l.areaOperacional = ao.areaOperacionalID
+        LEFT JOIN TipoSistema            ts ON l.tipoSistema     = ts.tipoSistemaID
+        WHERE {where}
+        ORDER BY l.dataExclusao DESC
+        LIMIT 500
+    """
+    
+    df = _query_df(query, params=params)
+    if df.empty:
+        return df
+    
+    try:
+        if 'Data Exclusão' in df.columns:
+            df['Data Exclusão'] = pd.to_datetime(df['Data Exclusão']).dt.strftime('%d/%m/%Y %H:%M')
+    except:
+        pass
+    
+    return df
+
+
+def obter_linha_excluida_por_id(linha_id: str) -> dict:
+    """Retorna os dados completos de uma linha excluída pelo ID."""
+    try:
+        conn = get_connection()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM LinhaExcluida WHERE linhaID = ?", (linha_id,))
+        row = cursor.fetchone()
+        if not row:
+            conn.close()
+            return {}
+        
+        dados = dict(row)
+        
+        cursor.execute("""
+            SELECT numeroOficio, dataOficio, assunto 
+            FROM Oficio 
+            WHERE oficioID = ?
+        """, (dados.get("oficioExclusao"),))
+        oficio_row = cursor.fetchone()
+        conn.close()
+        
+        if oficio_row:
+            dados["oficioExclusaoInfo"] = dict(oficio_row)
+        
+        return dados
+    except Exception as e:
+        print(f"Erro ao obter linha excluída: {e}")
+        return {}

@@ -94,7 +94,7 @@ def render():
         with col6:
             area_op_id       = _selectbox("Área Operacional", refs["areas_op"])
         with col7:
-            tipo_sistema_id  = _selectbox("Tipo de Sistema", refs["tipos_sistema"])
+            tipo_sistema_id  = _selectbox("Tipo de Operação", refs["tipos_sistema"])
 
         col8, col9, col10 = st.columns(3)
         with col8:
@@ -133,7 +133,7 @@ def render():
         with col17:
             frota_tipo_veiculo_id  = _selectbox("Tipo de Veículo da Frota", refs["tipos_veiculo"])
         with col18:
-            frota_ultimo_oficio_id = _selectbox("Último Ofício da Frota", refs["oficios"])
+            frota_ultimo_oficio_id = _selectbox("Ofício de Autorização da Frota", refs["oficios"])
             if frota_ultimo_oficio_id:
                 st.caption(f"**Assunto:** {refs['assuntos_oficios'].get(frota_ultimo_oficio_id, 'Sem assunto')}")
         with col19:

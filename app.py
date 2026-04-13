@@ -3,6 +3,10 @@
 # =============================================================
 
 import os
+import base64
+import io
+import pandas as pd
+from datetime import datetime
 import streamlit as st
 
 import mod_cadastro
@@ -11,10 +15,11 @@ import mod_consulta
 import mod_ficha
 import mod_edicao
 import mod_historico
-
 import mod_historico
 import mod_usuarios
 import db
+
+from mod_consulta import _refs_consulta
 
 # --- Configuração da página ---
 st.set_page_config(
@@ -64,7 +69,46 @@ if reset_token:
         st.rerun()
 
 if not st.session_state.get('logged_in'):
-    st.markdown('<div style="text-align:center;padding:2rem;background:linear-gradient(135deg,#f5f7fa,#c3cfe2);border-radius:12px;margin:2rem 0"><h2>Acesso ao Sistema</h2><p>Faça login para continuar.</p></div>', unsafe_allow_html=True)
+    logo_dir = os.path.dirname(os.path.abspath(__file__))
+    logo_svg = os.path.join(logo_dir, "logo_rio.svg")
+    logo_png = os.path.join(logo_dir, "logo_rio.png")
+    
+    logo_img = ""
+    if os.path.exists(logo_svg):
+        with open(logo_svg, "rb") as f:
+            logo_data = base64.b64encode(f.read()).decode()
+        logo_img = f'<img src="data:image/svg+xml;base64,{logo_data}" style="width:230px;height:auto;display:block;margin:0 auto;">'
+    elif os.path.exists(logo_png):
+        with open(logo_png, "rb") as f:
+            logo_data = base64.b64encode(f.read()).decode()
+        logo_img = f'<img src="data:image/png;base64,{logo_data}" style="width:230px;height:auto;display:block;margin:0 auto;">'
+    
+    st.markdown(f"""
+    <style>
+    .login-header {{
+        background: linear-gradient(135deg, #ffdc00 0%, #ffdc00 100%);
+        padding: 25px 30px;
+        border-radius: 12px;
+        margin: 1rem 0 2rem;
+        text-align: center;
+    }}
+    .login-header h2 {{
+        color: #000000 !important;
+        font-size: 1.8rem !important;
+        margin: 15px 0 5px !important;
+    }}
+    .login-header p {{
+        color: #000000;
+        margin: 0;
+        font-size: 1rem;
+    }}
+    </style>
+    <div class="login-header">
+        <div class="logo-box">{logo_img}</div>
+        <h2>Acesso ao Sistema Rede Integrada de Ônibus</h2>
+        <p>Faça login para continuar</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     tab_login, tab_forgot = st.tabs(["Login", "Esqueci Senha"])
     
@@ -275,6 +319,8 @@ if aba == "Principal":
         tab_labels += ["➕  Cadastrar Linha", "🗂️  Tabelas de Referência"]
     if st.session_state.role == "admin":
         tab_labels += ["👥  Usuários"]
+    if st.session_state.role in ["admin", "editor"]:
+        tab_labels += ["🗑️  Linhas Excluídas"]
     
     tabs = st.tabs(tab_labels)
     
@@ -287,9 +333,68 @@ if aba == "Principal":
         with tabs[2]:
             mod_cadastro_ref.render()
     
+    # Usuários (só admin)
     if st.session_state.role == "admin" and len(tab_labels) > 3:
         with tabs[3]:
             mod_usuarios.render()
+    
+    # Linhas Excluídas (admin e editor)
+    if st.session_state.role in ["admin", "editor"]:
+        idx_excluidas = 3 if st.session_state.role == "editor" else 4
+        if len(tab_labels) > idx_excluidas:
+            with tabs[idx_excluidas]:
+                from db import consultar_linhas_excluidas
+                
+                st.markdown("### 🗑️ Linhas Excluídas")
+                
+                col1, col2 = st.columns([2, 1])
+                with col1:
+                    filtro_num = st.text_input("Buscar por número", placeholder="Ex: 474", key="filtro_num_excluidas")
+                with col2:
+                    if st.button("🔍 Buscar", type="primary", width='stretch', key="buscar_excluidas"):
+                        df = consultar_linhas_excluidas(numero=filtro_num)
+                        st.session_state["resultado_excluidas"] = df
+                
+                if "resultado_excluidas" not in st.session_state or st.button("🔄 Atualizar", key="atualizar_excluidas"):
+                    df = consultar_linhas_excluidas()
+                    st.session_state["resultado_excluidas"] = df
+                
+                df = st.session_state.get("resultado_excluidas", pd.DataFrame())
+                
+                if df.empty:
+                    st.info("Nenhuma linha excluída encontrada.")
+                else:
+                    st.markdown(f"**{len(df)}** {'linha excluída' if len(df) == 1 else 'linhas excluídas'}")
+                    
+                    evento = st.dataframe(
+                        df,
+                        width='stretch',
+                        hide_index=True,
+                        on_select="rerun",
+                        selection_mode="single-row",
+                    )
+                    
+                    if evento and len(evento.selection.rows) > 0:
+                        idx = evento.selection.rows[0]
+                        linha_selecionada = df.iloc[idx]
+                        linha_id = linha_selecionada["linhaID"]
+                        
+                        st.markdown("---")
+                        col_btn1, col_btn2 = st.columns([1, 4])
+                        with col_btn1:
+                            if st.button("👁️ Ver Ficha", width='stretch', key="ver_ficha_excluida"):
+                                st.session_state["linha_acao_id"] = linha_id
+                                st.session_state["aba_ativa"] = "FichaExcluida"
+                                st.rerun()
+                    
+                    buf = io.StringIO()
+                    df.to_csv(buf, index=False, encoding="utf-8-sig")
+                    st.download_button(
+                        label="⬇️ Exportar CSV",
+                        data=buf.getvalue().encode("utf-8-sig"),
+                        file_name="linhas_excluidas.csv",
+                        mime="text/csv",
+                    )
 
 elif aba == "Ficha":
     linha_id = st.session_state.get("linha_acao_id")
@@ -303,20 +408,150 @@ elif aba == "Historico":
     linha_id = st.session_state.get("linha_acao_id")
     mod_historico.render(linha_id)
 
+elif aba == "FichaExcluida":
+    from db import obter_linha_excluida_por_id, carregar_oficios, carregar_assuntos_oficios
+    from mod_cadastro import _carregar_todas_referencias
+    
+    refs = _carregar_todas_referencias()
+    oficios_info = carregar_assuntos_oficios()
+    
+    def _obter_label(dicionario_inverso, chave_busca):
+        if not chave_busca:
+            return "-"
+        for label, id_ in dicionario_inverso.items():
+            if str(id_) == str(chave_busca):
+                return label
+        return chave_busca
+    
+    def _of_html(of_id):
+        if not of_id: return "-"
+        lbl = _obter_label(refs.get('oficios', {}), of_id)
+        ass = oficios_info.get(of_id, '')
+        if ass and ass != "Sem assunto":
+             return f"{lbl}<br><span style='font-size:10.5px; font-weight:normal; color:#555;'>Assunto: {ass}</span>"
+        return lbl
+    
+    linha_id = st.session_state.get("linha_acao_id")
+    dados = obter_linha_excluida_por_id(linha_id)
+    
+    st.markdown("### 📄 Ficha da Linha Excluída")
+    
+    if not dados:
+        st.error("Linha não encontrada.")
+    else:
+        v_linha = dados.get('numeroLinha', '-')
+        v_servico = _obter_label(refs.get('servicos', {}), dados.get('servico'))
+        v_vista = dados.get('vista') or '-'
+        v_via = dados.get('via') or '-'
+        v_operador = _obter_label(refs.get('operadores', {}), dados.get('operador'))
+        v_criacao = dados.get('dataCriacaoLinha') or '-'
+        v_tipo = _obter_label(refs.get('tipos_sistema', {}), dados.get('tipoSistema'))
+        v_caracteristica = _obter_label(refs.get('caracteristicas', {}), dados.get('caracteristica'))
+        v_area_op = _obter_label(refs.get('areas_op', {}), dados.get('areaOperacional'))
+        v_grupamento = _obter_label(refs.get('grupamentos', {}), dados.get('grupamentoBRS'))
+        v_parametro = _obter_label(refs.get('parametros', {}), dados.get('parametro_novo'))
+        v_km_ida = str(dados.get('kmIDA')).replace('.',',') if dados.get('kmIDA') else '-'
+        v_km_volta = str(dados.get('kmVOLTA')).replace('.',',') if dados.get('kmVOLTA') else '-'
+        v_obs = dados.get('observacao') or '-'
+        
+        v_frota_tipo = _obter_label(refs.get('tipos_veiculo', {}), dados.get('frotaTipoVeiculo'))
+        v_frota_of = _of_html(dados.get('frotaUltimoOficio'))
+        
+        v_oficio_prin = _of_html(dados.get('oficio'))
+        v_oficio_prim = _of_html(dados.get('oficioprimeiroHistorico'))
+        v_oficio_ult = _of_html(dados.get('oficioUltimaAlteracao'))
+        
+        with st.expander("Dados Gerais", expanded=True):
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.write("**Número:**", v_linha)
+                st.write("**Serviço:**", v_servico)
+                st.write("**Via:**", v_via)
+            with col2:
+                st.write("**Operador:**", v_operador)
+                st.write("**Área Operacional:**", v_area_op)
+                st.write("**Vista:**", v_vista)
+            with col3:
+                st.write("**Tipo Sistema:**", v_tipo)
+                st.write("**Parâmetro:**", v_parametro)
+                st.write("**Data Criação:**", v_criacao)
+        
+        with st.expander("Características"):
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.write("**Característica:**", v_caracteristica)
+            with col2:
+                st.write("**Grupamento BRS:**", v_grupamento)
+            with col3:
+                st.write("**Ofício Principal:**",unsafe_allow_html=True)
+                st.markdown(v_oficio_prin, unsafe_allow_html=True)
+        
+        with st.expander("Informações de Frota"):
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.write("**Frota Tipo Veículo:**", v_frota_tipo)
+            with col2:
+                st.write("**Frota Último Ofício:**", unsafe_allow_html=True)
+                st.markdown(v_frota_of, unsafe_allow_html=True)
+            with col3:
+                st.write("**Ofício Primeiro Histórico:**", unsafe_allow_html=True)
+                st.markdown(v_oficio_prim, unsafe_allow_html=True)
+        
+        with st.expander("Observações"):
+            st.write(v_obs)
+        
+        with st.expander("Dados da Exclusão", expanded=True):
+            oficio_excl_id = dados.get("oficioExclusao")
+            oficio_excl = _of_html(oficio_excl_id)
+            
+            data_excl = dados.get("dataExclusao", "")
+            if data_excl:
+                try:
+                    dt = datetime.fromisoformat(data_excl.replace('Z', '+00:00'))
+                    data_excl_fmt = dt.strftime('%d/%m/%Y %H:%M')
+                except:
+                    data_excl_fmt = data_excl
+            else:
+                data_excl_fmt = "-"
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.write("**Ofício de Exclusão:**", unsafe_allow_html=True)
+                st.markdown(oficio_excl, unsafe_allow_html=True)
+            with col2:
+                st.write("**Data da Exclusão:**", data_excl_fmt)
+            with col3:
+                st.write("**Usuário:**", dados.get("usuarioExclusao", "-"))
+        
+        col_voltar = st.columns([1])
+        with col_voltar[0]:
+            if st.button("⬅️ Voltar", key="voltar_ficha_excluida"):
+                st.session_state["aba_ativa"] = "Principal"
+                st.rerun()
+
 elif aba == "Excluir":
+    from db import carregar_oficios, opcoes
+    
     numero = st.session_state.get("linha_numero_excluir")
     linha_id = st.session_state.get("linha_acao_id")
     
     st.markdown(f"### 🗑️ Excluir Linha {numero}")
     st.warning("Tem certeza que deseja excluir esta linha permanentemente? Esta ação não pode ser desfeita.")
     
+    oficios = carregar_oficios()
+    oficios_labels = ["Selecione..."] + list(opcoes(oficios).keys())
+    oficio_selecionado = st.selectbox("Ofício de Exclusão", oficios_labels)
+    
     col_yes, col_no = st.columns(2)
     with col_yes:
-        if st.button("✅ Confirmar Exclusão", type="primary", width='stretch'):
+        if st.button("✅ Confirmar Exclusão", type="primary", width='stretch', disabled=(oficio_selecionado == "Selecione..."), key="confirmar_exclusao"):
             from db import excluir_linha
-            sucesso, msg = excluir_linha(linha_id)
+            oficio_id = opcoes(oficios).get(oficio_selecionado)
+            sucesso, msg = excluir_linha(linha_id, oficio_id)
             if sucesso:
                 st.session_state["_mensagem_sucesso"] = msg
+                st.session_state.pop("resultado_consulta", None)
+                st.session_state.pop("resultado_excluidas", None)
             else:
                 st.session_state["_mensagem_erro"] = msg
             st.session_state["aba_ativa"] = "Principal"

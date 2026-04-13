@@ -28,7 +28,7 @@ def _refs_consulta():
 
 def render():
     st.markdown("### 🔍 Consultar Linhas")
-    st.markdown("Filtre por número, área operacional, operador ou tipo de sistema.")
+    st.markdown("Filtre por número, área operacional, operador ou tipo de operação.")
 
     refs = _refs_consulta()
 
@@ -50,7 +50,7 @@ def render():
         operador_id     = refs["operadores"].get(sel_op, "")
     with col4:
         ts_labels       = ["Todos"] + list(refs["tipos_sistema"].keys())
-        sel_ts          = st.selectbox("Tipo de Sistema", ts_labels)
+        sel_ts          = st.selectbox("Tipo de Operação", ts_labels)
         tipo_sistema_id = refs["tipos_sistema"].get(sel_ts, "")
 
     # Segunda linha de filtros
