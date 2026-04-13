@@ -23,7 +23,7 @@ Aplicação Streamlit para cadastro e consulta de linhas de ônibus utilizando b
 3. **Inicializar o Banco de Dados:**
    Este passo cria as tabelas e popula com dados iniciais (Serviços, Operadores, Áreas, etc).
    ```bash
-   python init_db.py
+   python utils/init_db.py
    ```
 
 ### Executar a Aplicação
@@ -42,38 +42,46 @@ O sistema possui 3 tipos de usuários com permissões diferentes:
 
 | Usuário | Senha | Permissões |
 |---------|-------|------------|
-| **admin** | Admin@123 | Todas as abas (Consulta, Cadastro, Tabelas de Referência, Usuários) |
-| **editor** | Editor@123 | Consulta, Cadastro, Tabelas de Referência |
-| **user** | User@123 | Apenas Consulta |
+| **admin** | admin123 | Todas as abas (Consulta, Cadastro, Tabelas de Referência, Usuários, Linhas Excluídas) |
+| **editor** | editor123 | Consulta, Cadastro, Tabelas de Referência, Linhas Excluídas |
+| **user** | user123 | Apenas Consulta |
 
-> ⚠️ As senhas iniciais acima devem ser alteradas após a inicialização do banco de dados, quando o usuário executar o arquivo app.py pela primeira vez. Trata-se de uma medida de segurança imediata e imprescindível para a proteção do sistema.
-
-> ⚠️ **Nota**: A senha inicial deve ser alterada conforme a política de segurança (mínimo 8 caracteres, 1 maiúscula, 1 número, 1 símbolo).
+> ⚠️ As senhas iniciais devem ser alteradas após a primeira utilização. Mínimo 8 caracteres, 1 maiúscula, 1 número, 1 símbolo.
 
 ### Políticas de Segurança
 
 - **Rate Limiting**: Após 5 tentativas incorretas, a conta é bloqueada por 15 minutos
 - **Validação de Senha**: Mínimo 8 caracteres, 1 letra maiúscula, 1 número, 1 símbolo especial
 
-## 📁 Estrutura de Pastas
+## 📁 Estrutura de Pastas (Padrão MVC)
 
 ```
 cadastro_RIO_SQLite/
-├── app.py                 # Aplicação principal Streamlit
-├── config.py              # Conexão com SQLite
-├── db.py                  # Operações de Banco de Dados (CRUD + Auth)
-├── init_db.py             # Script de inicialização do banco de dados
-├── database_RIO.db        # Banco de dados SQLite (gerado após init_db)
-├── mod_cadastro.py        # Módulo UI: Cadastro de linhas
-├── mod_consulta.py        # Módulo UI: Consulta de linhas
-├── mod_cadastro_ref.py    # Módulo UI: Cadastro de tabelas de ref
-├── mod_edicao.py          # Módulo UI: Edição completa de registros
-├── mod_ficha.py           # Módulo UI: Ficha cadastral detalhada
-├── mod_historico.py       # Módulo UI: Histórico e rastreamento de revisões
-├── mod_usuarios.py        # Módulo UI: Gerenciamento de usuários (apenas admin)
-├── Schema.csv             # Definição do esquema das tabelas
-├── requirements.txt       # Dependências Python
-└── README.md              # Este arquivo
+├── app.py                      # Aplicação principal Streamlit (Entry Point)
+├── models/                     # Model - Dados e lógica de banco
+│   ├── __init__.py
+│   ├── db.py                   # Operações de Banco de Dados (CRUD + Auth)
+│   └── config.py               # Conexão com SQLite
+├── views/                      # View - Interface Streamlit
+│   ├── __init__.py
+│   ├── mod_consulta.py         # Módulo UI: Consulta de linhas
+│   ├── mod_cadastro.py         # Módulo UI: Cadastro de linhas
+│   ├── mod_edicao.py          # Módulo UI: Edição completa de registros
+│   ├── mod_ficha.py            # Módulo UI: Ficha cadastral detalhada
+│   ├── mod_historico.py       # Módulo UI: Histórico e rastreamento de revisões
+│   ├── mod_usuarios.py        # Módulo UI: Gerenciamento de usuários (apenas admin)
+│   └── mod_cadastro_ref.py     # Módulo UI: Cadastro de tabelas de referência
+├── utils/                      # Utilitários
+│   ├── init_db.py              # Script de inicialização do banco de dados
+│   └── init_db_dados_fake.py  # Script para dados de teste
+├── database_RIO.db            # Banco de dados SQLite (gerado após init_db)
+├── Schema.csv                  # Definição do esquema das tabelas
+├── Schema BQ - TABELAS.csv     # Dados para popular o banco
+├── requirements.txt           # Dependências Python
+├── RELEASE.md                 # Documentação de release
+├── LICENSE                    # Licença Creative Commons BY 4.0
+├── iniciar_sistema.bat        # Script para iniciar o sistema no Windows
+└── README.md                  # Este arquivo
 ```
 
 ## ⚙️ Funcionalidades
@@ -88,28 +96,29 @@ cadastro_RIO_SQLite/
 - ✅ **Cadastro de Linhas** - Adicionar novos registros de ônibus
 - ✅ **Consulta com Filtros** - Busca otimizada por número, área, operador e tipo
 - ✅ **Edição (CRUD Completo)** - Operações seguras de Alterar e Excluir
+- ✅ **Exclusão com Registro** - Linhas excluídas são movidas para tabela histórica
+- ✅ **Linhas Excluídas** - Consulta de linhas removidas com ficha detalhada
 - ✅ **Ficha Cadastral** - Interface de visualização detalhada
 - ✅ **Histórico e Revisões** - Rastreio automático de atualizações
 - ✅ **Exportação CSV** - Download dos resultados da consulta
 
-### Administração (apenas Admin)
-- ✅ **Gerenciamento de Usuários** - Criar, editar e excluir usuários
+### Administração (Admin/Editor)
+- ✅ **Gerenciamento de Usuários** - Criar, editar e excluir usuários (apenas admin)
 - ✅ **Alteração de Senhas** - Admin pode redefinir senhas de qualquer usuário
+- ✅ **Tabelas de Referência** - Gerenciamento de serviços, áreas, operadores, etc.
 
 ### UI/UX
-- ✅ **Design Moderno** - Interface responsiva com tipografia limpa
-- ✅ **Tabelas de Referência** - Gerenciamento dinâmico de serviços, áreas e operadores
+- ✅ **Design Moderno** - Interface responsiva
 - ✅ **Timeout Automático** - Logout após 30 minutos de inatividade
 
 ## 🛠️ Desenvolvimento
 
-### Adicionar nova tabela
-1. Adicione a definição no `Schema.csv`
-2. Atualize o `init_db.py` com dados iniciais se necessário
-3. Crie o formulário em `mod_cadastro_ref.py`
+### Adicionar nova tabela de referência
+1. Adicione a definição no `utils/init_db.py`
+2. Crie o formulário em `views/mod_cadastro_ref.py`
 
 ### Modificar Consultas
-- Edite as funções no `db.py`. O projeto utiliza a biblioteca padrão `sqlite3` e `pandas` para retornar DataFrames.
+- Edite as funções em `models/db.py`. O projeto utiliza `sqlite3` e `pandas`.
 
 ### Adicionar novo usuário via código
 ```python
@@ -119,14 +128,15 @@ import bcrypt
 # Gere o hash da senha
 pwd_hash = bcrypt.hashpw(b'SuaSenha@123', bcrypt.gensalt()).decode()
 
-# Insira no banco (via SQLite ou admin UI)
+# Insira no banco via UI de admin ou direto no SQLite
 ```
 
 ## 📝 Notas Importantes
 
 - 🔒 O banco de dados `database_RIO.db` é local. Faça backups periódicos se houver dados críticos.
-- 🧹 Para limpar o banco e recomeçar do zero, apague o arquivo `.db` e rode `python init_db.py`.
-- ⚙️ O arquivo `auth_config.py` foi substituído pelo sistema de autenticação baseado em banco de dados.
+- 🧹 Para limpar o banco e recomeçar do zero, apague o arquivo `.db` e rode `python utils/init_db.py`.
+- 📋 As linhas excluídas não são deletadas permanentemente, são movidas para a tabela `LinhaExcluida` com registro de data, usuário e ofício de exclusão.
+- 🏷️ Este projeto está sob licença **Creative Commons Attribution 4.0 (CC BY 4.0)**
 
 ## 🐛 Troubleshooting
 

@@ -1,6 +1,6 @@
 # Sistema de Cadastro e Consulta de Linhas de Ônibus - RIO
 
-## 📋 Release Notes v1.0
+## 📋 Release Notes v1.1
 
 ---
 
@@ -13,24 +13,27 @@ Este é um sistema de **cadastro e consulta de linhas de ônibus** desenvolvido 
 - Informações de frota (tipo de veículo, ofícios relacionados)
 - Itinerários (pontos de parada, logradouros, bairros)
 - Histórico de alterações
+- **Registro de linhas excluídas com ficha completa**
 
 ### Principais Funcionalidades
 
 ✅ **Consulta de Linhas** - Busca filtrada por número, área operacional, operador, tipo de operação, etc.
 
-✅ **Cadastro de Novas Linhas** - Interface completa para registro de novas linhas (função administrativa)
+✅ **Cadastro de Novas Linhas** - Interface completa para registro de novas linhas (editor/admin)
 
-✅ **Edição de Linhas** - Alteração de dados existentes (função administrativa)
+✅ **Edição de Linhas** - Alteração de dados existentes (editor/admin)
 
 ✅ **Histórico de Alterações** - Registro de todas as modificações feitas em cada linha
 
-✅ **Exclusão com Registro** - Linhas excluídas são movidas para uma tabela histórica para consulta futura
+✅ **Exclusão com Registro** - Linhas excluídas são movidas para tabela histórica com ofício obrigatório
+
+✅ **Linhas Excluídas** - Nova aba para consulta de linhas removidas com ficha detalhada (editor/admin)
 
 ✅ **Fichas Detalhadas** - Visualização completa de cada linha com todos os dados
 
 ✅ **Tabelas de Referência** - Gerenciamento de dados auxiliares (operadores, áreas, tipos de sistema, etc.)
 
-✅ **Gestão de Usuários** - Controle de acesso e permissões (função administrativa)
+✅ **Gestão de Usuários** - Controle de acesso e permissões (admin)
 
 ---
 
@@ -39,6 +42,7 @@ Este é um sistema de **cadastro e consulta de linhas de ônibus** desenvolvido 
 - **Frontend**: Streamlit (Python)
 - **Backend**: SQLite (banco de dados local)
 - **Linguagem**: Python
+- **Padrão de Projeto**: MVC (Model-View-Controller)
 - **Hospedagem**: Pode ser executado localmente ou em servidores como Streamlit Cloud
 
 ---
@@ -58,7 +62,7 @@ Este é um sistema de **cadastro e consulta de linhas de ônibus** desenvolvido 
 | **Parametro** | Parâmetros de operação |
 | **Caracteristica** | Características da linha |
 | **TipoVeiculo** | Tipos de veículo autorizados |
-| **GrupamentoBRS** | Grupamentos de faixa prioritas BRS |
+| **GrupamentoBRS** | Grupamentos de faixa prioritária BRS |
 | **Oficio** | Ofícios da SMTR relacionados |
 | **Itinerario** | Pontos de parada de cada linha |
 | **Usuarios** | Usuários do sistema com níveis de acesso |
@@ -116,12 +120,14 @@ O sistema possui três níveis de acesso:
 
 5. **Inicialize o banco de dados:**
    ```bash
-   python init_db.py
+   python utils/init_db.py
    ```
 
 6. **Execute o aplicativo:**
    ```bash
    streamlit run app.py
+   ou
+python -m streamlit run app.py  #Caso o streamlit não esteja no path.
    ```
 
 7. **Acesse no navegador:**
@@ -131,14 +137,13 @@ O sistema possui três níveis de acesso:
 
 ## 6. Credenciais Padrão
 
-Após a primeira execução, o sistema cria automaticamente dois usuários:
+O sistema cria automaticamente três usuários:
 
 | Usuário | Senha | Função |
 |---------|-------|--------|
 | admin | admin123 | Administrador |
 | editor | editor123 | Editor |
 | user | user123 | Usuário |
-
 
 ⚠️ **Recomendação**: Altere as senhas padrão após o primeiro acesso!
 
@@ -148,7 +153,7 @@ Após a primeira execução, o sistema cria automaticamente dois usuários:
 
 ### 7.1 Login
 
-Ao abrir o sistema, você verá a tela de login. Insira seu usuário e senha para acessar.
+Ao abrir o sistema, você verá a tela de login com header amarelo e logo. Insira seu usuário e senha para acessar.
 
 ### 7.2 Consulta de Linhas
 
@@ -167,25 +172,26 @@ Ao abrir o sistema, você verá a tela de login. Insira seu usuário e senha par
 
 3. Selecione uma linha na tabela para ver as ações disponíveis:
    - 👁️ Ver Ficha
-   - ✏️ Alterar (apenas admin/editor)
+   - ✏️ Alterar (editor/admin)
    - 🕰️ Histórico
-   - 🗑️ Excluir (apenas admin)
+   - 🗑️ Excluir (admin)
 
 ### 7.3 Cadastro de Linha (Editor/Admin)
 
 1. Acesse a aba "Cadastrar Linha"
 2. Preencha os campos obrigatórios (marcados com *)
 3. Adicione os itinerários (ida e volta)
-4. Clique em "Salvar"
+4. Selecione os ofícios relacionados
+5. Clique em "Salvar"
 
 ### 7.4 Exclusão de Linha (Admin)
 
 1. Selecione a linha na aba de consulta
 2. Clique em "Excluir"
-3. **Selecione um Ofício de Exclusão** (obrigatório)
+3. **Selecione um Ofício de Exclusão** (obrigatório - campo requerido)
 4. Confirme a exclusão
 
-⚠️ A linha não é deletada definitivamente! Ela é movida para a tabela de linhas excluídas com registro da data, usuário e ofício.
+⚠️ A linha não é deletada definitivamente! Ela é movida para a tabela `LinhaExcluida` com registro da data, usuário e ofício de exclusão.
 
 ### 7.5 Linhas Excluídas (Editor/Admin)
 
@@ -200,34 +206,51 @@ Ao abrir o sistema, você verá a tela de login. Insira seu usuário e senha par
 
 ---
 
-## 8. Estrutura de Arquivos
+## 8. Estrutura de Arquivos (Padrão MVC)
 
 ```
 cadastro_RIO_SQLite/
-├── app.py                 # Arquivo principal do Streamlit
-├── db.py                  # Funções de banco de dados
-├── config.py              # Configurações de conexão
-├── init_db.py             # Script de inicialização do banco
-├── mod_consulta.py        # Módulo de consulta
-├── mod_cadastro.py        # Módulo de cadastro
-├── mod_edicao.py         # Módulo de edição
-├── mod_ficha.py          # Módulo de visualização de ficha
-├── mod_historico.py      # Módulo de histórico
-├── mod_usuarios.py       # Módulo de gestão de usuários
-├── mod_cadastro_ref.py   # Módulo de tabelas de referência
-├── database_RIO.db       # Banco de dados SQLite (criado automaticamente)
-├── logo_rio.png          # Logo do sistema (opcional)
-├── logo_rio.svg         # Logo do sistema (opcional)
-└── requirements.txt     # Dependências do Python
+├── app.py                      # Arquivo principal (Entry Point)
+├── models/                     # Model - Dados e lógica de banco
+│   ├── __init__.py
+│   ├── db.py                   # Operações SQLite (CRUD + Auth)
+│   └── config.py              # Configuração de conexão
+├── views/                      # View - Interface Streamlit
+│   ├── __init__.py
+│   ├── mod_consulta.py         # Consulta de linhas
+│   ├── mod_cadastro.py        # Cadastro de linhas
+│   ├── mod_edicao.py          # Edição de linhas
+│   ├── mod_ficha.py           # Ficha detalhada
+│   ├── mod_historico.py       # Histórico
+│   ├── mod_usuarios.py        # Gestão de usuários
+│   └── mod_cadastro_ref.py    # Tabelas de referência
+├── utils/                      # Utilitários
+│   ├── init_db.py             # Inicialização do banco
+│   └── init_db_dados_fake.py # Dados de teste
+├── database_RIO.db           # Banco SQLite
+├── requirements.txt           # Dependências
+├── RELEASE.md                 # Este arquivo
+├── LICENSE                    # CC BY 4.0
+├── iniciar_sistema.bat       # Script iniciar (Windows)
+└── README.md                  # Documentação
 ```
 
 ---
 
-## 9. Personalização
+## 9. Novidades na v1.1
+
+- 🔄 **Refatoração MVC** - Projeto reorganizado em models, views e utils
+- 🗑️ **Linhas Excluídas** - Nova funcionalidade de consulta e visualização de linhas removidas
+- 📄 **Exclusão com Ofício** - Campo obrigatório de ofício para rastrear motivo da exclusão
+- 🔧 **Correções** - Caminhos de arquivos corrigidos, imports atualizados
+
+---
+
+## 10. Personalização
 
 ### Adicionar Logo
 
-Coloque um arquivo `logo_rio.png` ou `logo_rio.svg` na pasta do projeto para exibir no header.
+Coloque um arquivo `logo_rio.png` ou `logo_rio.svg` na pasta raiz do projeto para exibir no header.
 
 ### Configurar Email para Reset de Senha
 
@@ -240,15 +263,9 @@ APP_URL = "https://sua-url.streamlit.app"
 
 ---
 
-## 10. Suporte e Contribuição
-
-Para dúvidas, sugestões ou relatórios de bugs, entre em contato através do repositório GitHub.
-
----
-
 ## 11. Licença
 
-Este projeto está disponível sob licença Creative Commons Atribuição 4.0 Internacional (CC BY 4.0).
+Este projeto está disponível sob licença **Creative Commons Attribution 4.0 Internacional (CC BY 4.0)**.
 
 ---
 
