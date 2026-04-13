@@ -9,17 +9,16 @@ import pandas as pd
 from datetime import datetime
 import streamlit as st
 
-import mod_cadastro
-import mod_cadastro_ref
-import mod_consulta
-import mod_ficha
-import mod_edicao
-import mod_historico
-import mod_historico
-import mod_usuarios
-import db
+from views import mod_cadastro
+from views import mod_cadastro_ref
+from views import mod_consulta
+from views import mod_ficha
+from views import mod_edicao
+from views import mod_historico
+from views import mod_usuarios
+from models import db
 
-from mod_consulta import _refs_consulta
+from views.mod_consulta import _refs_consulta
 
 # --- Configuração da página ---
 st.set_page_config(
@@ -343,7 +342,7 @@ if aba == "Principal":
         idx_excluidas = 3 if st.session_state.role == "editor" else 4
         if len(tab_labels) > idx_excluidas:
             with tabs[idx_excluidas]:
-                from db import consultar_linhas_excluidas
+                from models.db import consultar_linhas_excluidas
                 
                 st.markdown("### 🗑️ Linhas Excluídas")
                 
@@ -409,7 +408,7 @@ elif aba == "Historico":
     mod_historico.render(linha_id)
 
 elif aba == "FichaExcluida":
-    from db import obter_linha_excluida_por_id, carregar_oficios, carregar_assuntos_oficios
+    from models.db import obter_linha_excluida_por_id, carregar_oficios, carregar_assuntos_oficios
     from mod_cadastro import _carregar_todas_referencias
     
     refs = _carregar_todas_referencias()
@@ -530,7 +529,7 @@ elif aba == "FichaExcluida":
                 st.rerun()
 
 elif aba == "Excluir":
-    from db import carregar_oficios, opcoes
+    from models.db import carregar_oficios, opcoes
     
     numero = st.session_state.get("linha_numero_excluir")
     linha_id = st.session_state.get("linha_acao_id")
@@ -545,7 +544,7 @@ elif aba == "Excluir":
     col_yes, col_no = st.columns(2)
     with col_yes:
         if st.button("✅ Confirmar Exclusão", type="primary", width='stretch', disabled=(oficio_selecionado == "Selecione..."), key="confirmar_exclusao"):
-            from db import excluir_linha
+            from models.db import excluir_linha
             oficio_id = opcoes(oficios).get(oficio_selecionado)
             sucesso, msg = excluir_linha(linha_id, oficio_id)
             if sucesso:

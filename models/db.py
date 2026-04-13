@@ -11,7 +11,7 @@ from email.mime.text import MIMEText
 
 import pandas as pd
 import sqlite3
-from config import get_connection
+from models.config import get_connection
 import streamlit as st
 
 

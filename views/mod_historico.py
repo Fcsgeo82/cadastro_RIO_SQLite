@@ -1,7 +1,7 @@
 import streamlit as st
 import datetime
-from db import obter_linha_por_id, obter_oficios_itinerarios
-from mod_cadastro import _carregar_todas_referencias
+from models.db import obter_linha_por_id, obter_oficios_itinerarios
+from views.mod_cadastro import _carregar_todas_referencias
 
 def _obter_label(dicionario_inverso, chave_busca):
     """Encontra a label de um ID pesquisando num dicionário {Label: ID}."""

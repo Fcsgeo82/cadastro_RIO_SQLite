@@ -6,7 +6,7 @@ import streamlit as st
 import uuid
 import bcrypt
 from datetime import datetime, timezone
-from db import get_connection, validate_password_strength
+from models.db import get_connection, validate_password_strength
 
 
 def _query_df(sql: str, params: list = None):

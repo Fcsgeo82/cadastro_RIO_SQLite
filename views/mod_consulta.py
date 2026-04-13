@@ -4,7 +4,7 @@
 
 import io
 import streamlit as st
-from db import (
+from models.db import (
     consultar_linhas, opcoes,
     carregar_areas_operacionais, carregar_operadores, carregar_tipos_sistema,
     carregar_caracteristicas, carregar_parametros_novos, carregar_tipos_veiculo,

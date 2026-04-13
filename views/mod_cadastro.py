@@ -5,7 +5,7 @@
 
 import streamlit as st
 import pandas as pd
-from db import (
+from models.db import (
     inserir_linha, opcoes,
     carregar_servicos, carregar_operadores,
     carregar_areas_operacionais, 

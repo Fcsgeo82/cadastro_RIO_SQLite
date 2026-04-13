@@ -10,8 +10,8 @@ from datetime import datetime, timezone
 
 import streamlit as st
 
-from config import get_connection
-from db import listar_tabela
+from models.config import get_connection
+from models.db import listar_tabela
 
 
 # ------------------------------------------------------------------

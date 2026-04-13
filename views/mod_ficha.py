@@ -2,8 +2,8 @@ import streamlit as st
 import re
 import os
 import base64
-from db import obter_linha_por_id
-from mod_cadastro import _carregar_todas_referencias
+from models.db import obter_linha_por_id
+from views.mod_cadastro import _carregar_todas_referencias
 import streamlit.components.v1 as components
 
 

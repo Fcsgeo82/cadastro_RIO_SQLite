@@ -1,8 +1,8 @@
 import streamlit as st
 import datetime
 import pandas as pd
-from db import obter_linha_por_id, atualizar_linha
-from mod_cadastro import _carregar_todas_referencias
+from models.db import obter_linha_por_id, atualizar_linha
+from views.mod_cadastro import _carregar_todas_referencias
 
 def _get_index(dict_opcoes: dict, valor_id: str) -> int:
     """Retorna o índice da opção salva para usar no st.selectbox(index=...)."""
