@@ -4,7 +4,8 @@ import bcrypt
 import uuid
 from datetime import datetime, timezone
 
-DB_NAME = "database_RIO.db"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DB_NAME = os.path.join(BASE_DIR, "database_RIO.db")
 
 def init_db():
     """Inicializa o banco de dados SQLite com a estrutura baseada no Schema.csv."""
@@ -214,9 +215,9 @@ def init_db():
 
 def populate_from_csv():
     """Lê o arquivo Schema BQ - TABELAS.csv e popula o banco de dados."""
-    CSV_FILE = "Schema BQ - TABELAS.csv"
+    CSV_FILE = os.path.join(BASE_DIR, "Schema BQ - TABELAS.csv")
     if not os.path.exists(CSV_FILE):
-        print(f"Erro: Arquivo {CSV_FILE} not encontrado.")
+        print(f"Erro: Arquivo {CSV_FILE} não encontrado.")
         return
 
     conn = sqlite3.connect(DB_NAME)

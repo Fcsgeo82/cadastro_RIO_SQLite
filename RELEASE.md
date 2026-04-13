@@ -248,7 +248,7 @@ Para dúvidas, sugestões ou relatórios de bugs, entre em contato através do r
 
 ## 11. Licença
 
-Este projeto está disponível sob licença MIT.
+Este projeto está disponível sob licença Creative Commons Atribuição 4.0 Internacional (CC BY 4.0).
 
 ---
 

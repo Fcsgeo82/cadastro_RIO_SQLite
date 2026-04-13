@@ -252,9 +252,6 @@ footer { visibility: hidden; }
 """, unsafe_allow_html=True)
 
 # --- Header com Logo ---
-import os
-import base64
-
 logo_dir = os.path.dirname(os.path.abspath(__file__))
 logo_svg = os.path.join(logo_dir, "logo_rio.svg")
 logo_png = os.path.join(logo_dir, "logo_rio.png")
