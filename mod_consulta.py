@@ -148,7 +148,7 @@ def render():
                         st.session_state["aba_ativa"] = "Ficha"
                         st.rerun()
                 
-                if user_role == "admin":
+                if user_role in ["admin", "editor"]:
                     with col_btn2:
                         if st.button("✏️ Alterar", width='stretch'):
                             st.session_state["linha_acao_id"] = linha_id

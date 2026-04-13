@@ -2,3 +2,4 @@ streamlit
 pandas
 uuid
 bcrypt
+streamlit-option-menu
