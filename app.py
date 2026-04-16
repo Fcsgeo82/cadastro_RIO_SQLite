@@ -316,7 +316,7 @@ if aba == "Principal":
     if st.session_state.role == "admin":
         tab_labels += ["👥  Usuários"]
     if st.session_state.role in ["admin", "editor"]:
-        tab_labels += ["🗑️  Linhas Excluídas"]
+        tab_labels += ["📜  Histórico de Linhas"]
     
     tabs = st.tabs(tab_labels)
     
@@ -334,36 +334,50 @@ if aba == "Principal":
         with tabs[3]:
             mod_usuarios.render()
     
-    # Linhas Excluídas (admin e editor)
+    # Histórico de Linhas (admin e editor)
     if st.session_state.role in ["admin", "editor"]:
-        idx_excluidas = 3 if st.session_state.role == "editor" else 4
-        if len(tab_labels) > idx_excluidas:
-            with tabs[idx_excluidas]:
-                from models.db import consultar_linhas_excluidas
+        idx_historico = 3 if st.session_state.role == "editor" else 4
+        if len(tab_labels) > idx_historico:
+            with tabs[idx_historico]:
+                from models.db import consultar_historico
                 
-                st.markdown("### 🗑️ Linhas Excluídas")
+                st.markdown("### 📜 Histórico de Linhas")
                 
-                col1, col2 = st.columns([2, 1])
+                col1, col2, col3 = st.columns([2, 2, 1])
                 with col1:
-                    filtro_num = st.text_input("Buscar por número", placeholder="Ex: 474", key="filtro_num_excluidas")
+                    filtro_tipo = st.multiselect(
+                        "Tipo de Evento",
+                        options=["Criação", "Alteração", "Exclusão"],
+                        default=["Criação", "Alteração", "Exclusão"],
+                        key="filtro_tipo_historico"
+                    )
                 with col2:
-                    if st.button("🔍 Buscar", type="primary", width='stretch', key="buscar_excluidas"):
-                        df = consultar_linhas_excluidas(numero=filtro_num)
-                        st.session_state["resultado_excluidas"] = df
+                    filtro_num = st.text_input("Buscar linha", placeholder="Ex: 474", key="filtro_num_historico")
+                with col3:
+                    if st.button("🔍 Buscar", type="primary", width='stretch', key="buscar_historico"):
+                        df = consultar_historico(numero=filtro_num)
+                        st.session_state["resultado_historico"] = df
                 
-                if "resultado_excluidas" not in st.session_state or st.button("🔄 Atualizar", key="atualizar_excluidas"):
-                    df = consultar_linhas_excluidas()
-                    st.session_state["resultado_excluidas"] = df
+                if "resultado_historico" not in st.session_state or st.button("🔄 Atualizar", key="atualizar_historico"):
+                    df = consultar_historico()
+                    st.session_state["resultado_historico"] = df
                 
-                df = st.session_state.get("resultado_excluidas", pd.DataFrame())
+                df = st.session_state.get("resultado_historico", pd.DataFrame())
                 
-                if df.empty:
-                    st.info("Nenhuma linha excluída encontrada.")
+                # Filter by tipo if multiselect has multiple values (create copy to avoid index issues)
+                df_exibir = df.copy() if df.empty else df.copy()
+                if filtro_tipo and len(filtro_tipo) < 3 and not df.empty:
+                    df_exibir = df[df['Tipo'].isin(filtro_tipo)]
+                
+                if df_exibir.empty:
+                    st.info("Nenhum registro de histórico encontrado.")
                 else:
-                    st.markdown(f"**{len(df)}** {'linha excluída' if len(df) == 1 else 'linhas excluídas'}")
+                    st.markdown(f"**{len(df_exibir)}** {'evento' if len(df_exibir) == 1 else 'eventos'}")
                     
+                    # Hide technical columns from display but keep in df for selection
+                    cols_visiveis = [c for c in df_exibir.columns if c not in ("linhaID", "status")]
                     evento = st.dataframe(
-                        df,
+                        df_exibir[cols_visiveis],
                         width='stretch',
                         hide_index=True,
                         on_select="rerun",
@@ -372,23 +386,28 @@ if aba == "Principal":
                     
                     if evento and len(evento.selection.rows) > 0:
                         idx = evento.selection.rows[0]
-                        linha_selecionada = df.iloc[idx]
+                        linha_selecionada = df_exibir.iloc[idx]
                         linha_id = linha_selecionada["linhaID"]
+                        status = linha_selecionada.get("status", "ativa")
                         
                         st.markdown("---")
                         col_btn1, col_btn2 = st.columns([1, 4])
                         with col_btn1:
-                            if st.button("👁️ Ver Ficha", width='stretch', key="ver_ficha_excluida"):
+                            if st.button("👁️ Ver Ficha", width='stretch', key="ver_ficha_historico"):
                                 st.session_state["linha_acao_id"] = linha_id
-                                st.session_state["aba_ativa"] = "FichaExcluida"
+                                # Determine which view to show based on status
+                                if status == "excluida":
+                                    st.session_state["aba_ativa"] = "FichaExcluida"
+                                else:
+                                    st.session_state["aba_ativa"] = "Ficha"
                                 st.rerun()
                     
                     buf = io.StringIO()
-                    df.to_csv(buf, index=False, encoding="utf-8-sig")
+                    df_exibir.to_csv(buf, index=False, encoding="utf-8-sig")
                     st.download_button(
                         label="⬇️ Exportar CSV",
                         data=buf.getvalue().encode("utf-8-sig"),
-                        file_name="linhas_excluidas.csv",
+                        file_name="historico_linhas.csv",
                         mime="text/csv",
                     )
 
@@ -406,7 +425,7 @@ elif aba == "Historico":
 
 elif aba == "FichaExcluida":
     from models.db import obter_linha_excluida_por_id, carregar_oficios, carregar_assuntos_oficios
-    from mod_cadastro import _carregar_todas_referencias
+    from views.mod_cadastro import _carregar_todas_referencias
     
     refs = _carregar_todas_referencias()
     oficios_info = carregar_assuntos_oficios()
@@ -414,10 +433,11 @@ elif aba == "FichaExcluida":
     def _obter_label(dicionario_inverso, chave_busca):
         if not chave_busca:
             return "-"
+        # Try to find in the dictionary (id_ -> label)
         for label, id_ in dicionario_inverso.items():
             if str(id_) == str(chave_busca):
                 return label
-        return chave_busca
+        return str(chave_busca)
     
     def _of_html(of_id):
         if not of_id: return "-"

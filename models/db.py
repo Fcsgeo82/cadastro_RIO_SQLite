@@ -219,7 +219,17 @@ def inserir_linha(dados: dict) -> tuple[bool, str]:
             salvar_itinerarios(cursor, row["linhaID"], itinerarios, oficios_it)
             
         conn.commit()
+        
+        # Registrar evento de criação
+        numero_linha = row["numeroLinha"]
+        linha_id = row["linhaID"]
+        oficio_id = dados.get("oficio")
+        
         conn.close()
+        
+        # Log after commit (connection closed, so we use _exec which opens its own connection)
+        registrar_log(linha_id, numero_linha, "Criação", None, oficio_id, None)
+        
         return True, f"Linha {row['numeroLinha']} cadastrada com sucesso!"
     except Exception as e:
         conn.rollback()
@@ -456,7 +466,16 @@ def atualizar_linha(linha_id: str, dados: dict) -> tuple[bool, str]:
             salvar_itinerarios(cursor, linha_id, dados["itinerarios"], oficios_it)
             
         conn.commit()
+        
+        # Registrar evento de alteração
+        numero_linha = row["numeroLinha"]
+        oficio_id = dados.get("oficioUltimaAlteracao") or dados.get("oficio")
+        
         conn.close()
+        
+        # Log after commit
+        registrar_log(linha_id, numero_linha, "Alteração", None, oficio_id, None)
+        
         return True, f"Linha {row['numeroLinha']} atualizada com sucesso!"
     except Exception as e:
         conn.rollback()
@@ -499,7 +518,15 @@ def excluir_linha(linha_id: str, oficio_exclusao: str = None) -> tuple[bool, str
         cursor.execute("DELETE FROM Linha WHERE linhaID = ?", (linha_id,))
         
         conn.commit()
+        
+        # Registrar evento de exclusão
+        numero_linha = linha_dict.get("numeroLinha", "")
+        
         conn.close()
+        
+        # Log after commit
+        registrar_log(linha_id, numero_linha, "Exclusão", usuario, oficio_exclusao, None)
+        
         return True, "Linha excluída com sucesso!"
     except Exception as e:
         conn.close()
@@ -518,6 +545,90 @@ def _exec(sql: str, params: list = None) -> bool:
         print(f"DB exec error: {e}")
         conn.close()
         return False
+
+
+# ------------------------------------------------------------------
+# LOGS — Tabela LogEventos (Audit Trail)
+# ------------------------------------------------------------------
+
+def registrar_log(linha_id: str, numero_linha: str, tipo_evento: str, usuario: str = None, oficio_id: str = None, detalhes: str = None) -> bool:
+    """Registra um evento na tabela de auditoria LogEventos."""
+    if usuario is None:
+        try:
+            usuario = st.session_state.get("user", "sistema")
+        except:
+            usuario = "sistema"
+    
+    log_id = str(uuid.uuid4())
+    data_evento = datetime.now(tz=timezone.utc).isoformat()
+    
+    sql = """
+        INSERT INTO LogEventos (logID, linhaID, numeroLinha, tipoEvento, dataEvento, usuario, oficioID, detalhes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """
+    params = [log_id, linha_id, numero_linha, tipo_evento, data_evento, usuario, oficio_id, detalhes]
+    
+    return _exec(sql, params)
+
+
+def consultar_historico(
+    tipo_evento: str = "",
+    numero: str = "",
+    data_inicio: str = None,
+    data_fim: str = None,
+) -> pd.DataFrame:
+    """Consulta o histórico de eventos (LogEventos) com filtros."""
+    condicoes = ["1=1"]
+    params = []
+    
+    if tipo_evento and tipo_evento != "Todos":
+        condicoes.append("l.tipoEvento = ?")
+        params.append(tipo_evento)
+    
+    if numero.strip():
+        condicoes.append("CAST(l.numeroLinha AS TEXT) LIKE ?")
+        params.append(f"%{numero.strip()}%")
+    
+    if data_inicio:
+        condicoes.append("l.dataEvento >= ?")
+        params.append(data_inicio)
+    
+    if data_fim:
+        condicoes.append("l.dataEvento <= ?")
+        params.append(data_fim)
+    
+    where = " AND ".join(condicoes)
+    
+    # Subquery to check if line still exists in Linha (active) table
+    linha_existe = "(SELECT COUNT(*) FROM Linha WHERE Linha.linhaID = l.linhaID) > 0"
+
+    query = f"""
+        SELECT
+            l.dataEvento                                    AS `Data`,
+            l.tipoEvento                                    AS `Tipo`,
+            l.numeroLinha                                   AS `Linha`,
+            l.linhaID,
+            COALESCE(CAST(o.numeroOficio AS TEXT), '-')     AS `Ofício`,
+            COALESCE(o.assunto, '-')                        AS `Assunto`,
+            l.usuario                                       AS `Usuário`,
+            CASE WHEN {linha_existe} THEN 'ativa' ELSE 'excluida' END AS `status`
+        FROM LogEventos l
+        LEFT JOIN Oficio o ON l.oficioID = o.oficioID
+        WHERE {where}
+        ORDER BY l.dataEvento DESC
+        LIMIT 500
+    """
+    
+    df = _query_df(query, params=params)
+    if df.empty:
+        return df
+    
+    try:
+        df['Data'] = pd.to_datetime(df['Data']).dt.strftime('%d/%m/%Y %H:%M')
+    except:
+        pass
+    
+    return df
 
 
 def verify_login(username: str, password: str) -> dict:

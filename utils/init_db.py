@@ -143,18 +143,28 @@ def init_db():
     "termo TEXT",
     "dataCadastro TIMESTAMP"
 ],
-"Usuarios": [
-    "userID TEXT PRIMARY KEY",
-    "username TEXT UNIQUE",
-    "password_hash TEXT",
-    "role TEXT",
-    "email TEXT",
-    "reset_token TEXT",
-    "reset_expiry TEXT",
-    "failed_attempts INTEGER DEFAULT 0",
-    "lockout_until TEXT"
-]
-    }
+    "Usuarios": [
+        "userID TEXT PRIMARY KEY",
+        "username TEXT UNIQUE",
+        "password_hash TEXT",
+        "role TEXT",
+        "email TEXT",
+        "reset_token TEXT",
+        "reset_expiry TEXT",
+        "failed_attempts INTEGER DEFAULT 0",
+        "lockout_until TEXT"
+    ],
+    "LogEventos": [
+        "logID TEXT PRIMARY KEY",
+        "linhaID TEXT",
+        "numeroLinha TEXT",
+        "tipoEvento TEXT",
+        "dataEvento TIMESTAMP",
+        "usuario TEXT",
+        "oficioID TEXT",
+        "detalhes TEXT"
+    ]
+}
 
     print(f"Inicializando banco de dados: {DB_NAME}")
     

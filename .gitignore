@@ -16,7 +16,6 @@ ENV/
 *.swo
 
 # Arquivos de credenciais e segredos (MUITO IMPORTANTE)
-client_secrets.json
 .env
 .streamlit/secrets.toml
 
