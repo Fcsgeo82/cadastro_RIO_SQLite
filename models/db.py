@@ -151,7 +151,7 @@ def carregar_oficios() -> pd.DataFrame:
     
     df['label'] = "Ofício SMTR-RIO " + df['numeroOficio'].apply(lambda x: f"{x:02d}") + "/" + df['ano']
     
-    return df[['oficioID', 'label']].rename(columns={"oficioID": "id"})
+    return df[['oficioID', 'label', 'dataOficio']].rename(columns={"oficioID": "id"})
 
 def carregar_assuntos_oficios() -> dict:
     """Retorna um dicionário mapeando oficioID -> assunto."""

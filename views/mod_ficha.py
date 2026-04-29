@@ -88,17 +88,49 @@ def render(linha_id: str):
             rows_html += f"<tr><td>{p.get('logradouro', '')}</td><td>{p.get('observacao', '')}</td><td>{p.get('bairro', '')}</td></tr>"
         return rows_html
 
-    v_reg_ida = _gerar_linhas_direcao("R", "0")
-    v_reg_volta = _gerar_linhas_direcao("R", "1")
-    v_alt_ida = _gerar_linhas_direcao("A", "0")
-    v_alt_volta = _gerar_linhas_direcao("A", "1")
+    # Agrupamento dinâmico de Itinerários por Tipo
+    tipos_it = sorted(list(set(it.get("tipo", "R") for it in it_lista)))
+    # Garantir que "R" venha primeiro se existir
+    if "R" in tipos_it:
+        tipos_it.remove("R")
+        tipos_it = ["R"] + tipos_it
 
-    # Ofícios por Itinerário
-    v_it_reg_of_id = next((it.get("oficio") for it in it_lista if it.get("tipo") == "R"), None)
-    v_it_alt_of_id = next((it.get("oficio") for it in it_lista if it.get("tipo") == "A"), None)
-    
-    v_it_reg_of_raw = _of_raw_lbl(v_it_reg_of_id)
-    v_it_alt_of_raw = _of_raw_lbl(v_it_alt_of_id)
+    itinerarios_html = ""
+    for t in tipos_it:
+        nome_it = "Regular" if t == "R" else f"Alternativo ({t})"
+        if t.startswith("A") and len(t) > 1:
+            nome_it = f"Alternativo {t[1:]}"
+        elif t == "A":
+            nome_it = "Alternativo"
+            
+        of_id_it = next((it.get("oficio") for it in it_lista if it.get("tipo") == t), None)
+        of_raw_it = _of_raw_lbl(of_id_it)
+        
+        ida_html = _gerar_linhas_direcao(t, "0")
+        volta_html = _gerar_linhas_direcao(t, "1")
+        
+        itinerarios_html += f"""
+        <div class="flex-header">
+           <span>Itinerário {nome_it}</span>
+           <span style="font-size:13px; font-weight:normal">Ofício de autorização: <b>{of_raw_it}</b></span>
+        </div>
+        <table class="itinerario-table">
+            <tr><th colspan="3" class="it-sub-header">Itinerário de Ida</th></tr>
+            <tr>
+                <th style="width: 40%;">Logradouro</th>
+                <th style="width: 30%;">Complemento</th>
+                <th style="width: 30%;">Bairro</th>
+            </tr>
+            {ida_html}
+            <tr><th colspan="3" class="it-sub-header">Itinerário de Volta</th></tr>
+            <tr>
+                <th>Logradouro</th>
+                <th>Complemento</th>
+                <th>Bairro</th>
+            </tr>
+            {volta_html}
+        </table>
+        """
 
     logo_dir = os.path.dirname(os.path.abspath(__file__))
     logo_svg = os.path.join(logo_dir, "logo_rio.svg")
@@ -303,47 +335,7 @@ def render(linha_id: str):
             </tr>
         </table>
         
-        <div class="flex-header">
-           <span>Itinerário Regular</span>
-           <span style="font-size:13px; font-weight:normal">Ofício de autorização: <b>{v_it_reg_of_raw}</b></span>
-        </div>
-        <table class="itinerario-table">
-            <tr><th colspan="3" class="it-sub-header">Itinerário de Ida</th></tr>
-            <tr>
-                <th style="width: 40%;">Logradouro</th>
-                <th style="width: 30%;">Complemento</th>
-                <th style="width: 30%;">Bairro</th>
-            </tr>
-            {v_reg_ida}
-            <tr><th colspan="3" class="it-sub-header">Itinerário de Volta</th></tr>
-            <tr>
-                <th>Logradouro</th>
-                <th>Complemento</th>
-                <th>Bairro</th>
-            </tr>
-            {v_reg_volta}
-        </table>
-        
-        <div class="flex-header">
-           <span>Itinerário Alternativo</span>
-           <span style="font-size:13px; font-weight:normal">Ofício de autorização: <b>{v_it_alt_of_raw}</b></span>
-        </div>
-        <table class="itinerario-table">
-            <tr><th colspan="3" class="it-sub-header">Itinerário de Ida</th></tr>
-            <tr>
-                <th style="width: 40%;">Logradouro</th>
-                <th style="width: 30%;">Complemento</th>
-                <th style="width: 30%;">Bairro</th>
-            </tr>
-            {v_alt_ida}
-            <tr><th colspan="3" class="it-sub-header">Itinerário de Volta</th></tr>
-            <tr>
-                <th>Logradouro</th>
-                <th>Complemento</th>
-                <th>Bairro</th>
-            </tr>
-            {v_alt_volta}
-        </table>
+        {itinerarios_html}
     </div>
     </body>
     </html>

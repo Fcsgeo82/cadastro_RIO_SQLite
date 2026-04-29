@@ -5,6 +5,7 @@
 
 import streamlit as st
 import pandas as pd
+import datetime
 from models.db import (
     inserir_linha, opcoes,
     carregar_servicos, carregar_operadores,
@@ -19,6 +20,7 @@ from models.db import (
 def _carregar_todas_referencias():
     # Cache refresh: 2026-04-08 19:10
     """Carrega todas as tabelas de referência de uma vez (cache 5 min)."""
+    df_of = carregar_oficios()
     return {
         "servicos":        opcoes(carregar_servicos()),
         "operadores":      opcoes(carregar_operadores()),
@@ -28,7 +30,8 @@ def _carregar_todas_referencias():
         "parametros":      opcoes(carregar_parametros_novos()),
         "caracteristicas": opcoes(carregar_caracteristicas()),
         "grupamentos":     opcoes(carregar_grupamentos()),
-        "oficios":         opcoes(carregar_oficios()),
+        "oficios":         opcoes(df_of),
+        "datas_oficios":   dict(zip(df_of["id"], df_of["dataOficio"])) if not df_of.empty else {},
         "assuntos_oficios": carregar_assuntos_oficios(),
     }
 
@@ -64,6 +67,28 @@ def render():
 
     refs = _carregar_todas_referencias()
 
+    # Seleção de Ofício fora do form para permitir a vinculação reativa da data
+    st.markdown("#### 📄 Ofício de Criação")
+    col_of1, col_of2 = st.columns([2, 1])
+    with col_of1:
+        oficio_id = _selectbox("Selecione o Ofício que originou a linha", refs["oficios"], obrigatorio=True)
+    
+    dt_default = None
+    if oficio_id and refs["datas_oficios"].get(oficio_id):
+        try:
+            # Data no DB costuma estar em YYYY-MM-DD
+            dt_str = refs["datas_oficios"][oficio_id]
+            if dt_str:
+                dt_default = datetime.datetime.strptime(dt_str[:10], "%Y-%m-%d").date()
+        except Exception as e:
+            st.error(f"Erro ao processar data do ofício: {e}")
+            dt_default = None
+
+    if oficio_id:
+        st.info(f"ℹ️ **Assunto do Ofício:** {refs['assuntos_oficios'].get(oficio_id, 'Sem assunto')}")
+        if dt_default:
+            st.success(f"📅 A Data de Criação abaixo foi vinculada à data do ofício: **{dt_default.strftime('%d/%m/%Y')}**")
+
     with st.form("form_cadastro", clear_on_submit=True):
 
         # ── Identificação ────────────────────────────────────────
@@ -74,7 +99,7 @@ def render():
         with col2:
             vista = st.text_input("Vista *", placeholder="Ex: CENTRAL - MÉIER")
         with col3:
-            dataCriacaoLinha = st.date_input("Data de Criação *", value=None)
+            dataCriacaoLinha = st.date_input("Data de Criação *", value=dt_default)
 
         colV1, colV2 = st.columns(2)
         with colV1:
@@ -116,14 +141,8 @@ def render():
             kmVOLTA = st.number_input("KM Volta", min_value=0.0, step=0.1, value=None,
                                        placeholder="Ex: 12.5")
 
-        # ── Ofícios ──────────────────────────────────────────────
-        st.divider()
-        st.markdown("#### 📄 Ofícios")
-        st.info("ℹ️ O Ofício selecionado abaixo será registrado automaticamente como o **Primeiro Histórico** e como a **Última Alteração** desta linha inicialmente.")
-
-        oficio_id = _selectbox("Ofício de Criação", refs["oficios"])
-        if oficio_id:
-            st.info(f"ℹ️ **Assunto:** {refs['assuntos_oficios'].get(oficio_id, 'Sem assunto')}")
+        # Ofício de criação já selecionado acima
+        st.info("ℹ️ O Ofício selecionado no topo será registrado automaticamente como o **Primeiro Histórico** e como a **Última Alteração** desta linha inicialmente.")
 
         # ── Frota ────────────────────────────────────────────────
         st.divider()
@@ -144,7 +163,7 @@ def render():
         st.markdown("#### 🗺️ Itinerários")
         st.info("💡 Preencha as tabelas com os pontos do itinerário. 'Complemento' será salvo como observação do ponto.")
         
-        tabR, tabA = st.tabs(["Itinerário Regular", "Itinerário Alternativo"])
+        tabR, tabA1, tabA2, tabA3 = st.tabs(["Itinerário Regular", "Alternativo 1", "Alternativo 2", "Alternativo 3"])
         
         with tabR:
             it_reg_oficio_id = _selectbox("Ofício de Autorização (Regular)", refs["oficios"])
@@ -154,13 +173,29 @@ def render():
             st.write("") # Espaçador
             df_reg_volta = _itinerario_editor("Volta", "reg_volta")
                 
-        with tabA:
-            it_alt_oficio_id = _selectbox("Ofício de Autorização (Alternativo)", refs["oficios"])
-            if it_alt_oficio_id:
-                 st.caption(f"**Assunto:** {refs['assuntos_oficios'].get(it_alt_oficio_id, 'Sem assunto')}")
-            df_alt_ida = _itinerario_editor("Ida", "alt_ida")
+        with tabA1:
+            it_a1_oficio_id = _selectbox("Ofício de Autorização (Alt 1)", refs["oficios"])
+            if it_a1_oficio_id:
+                 st.caption(f"**Assunto:** {refs['assuntos_oficios'].get(it_a1_oficio_id, 'Sem assunto')}")
+            df_a1_ida = _itinerario_editor("Ida", "a1_ida")
             st.write("") # Espaçador
-            df_alt_volta = _itinerario_editor("Volta", "alt_volta")
+            df_a1_volta = _itinerario_editor("Volta", "a1_volta")
+
+        with tabA2:
+            it_a2_oficio_id = _selectbox("Ofício de Autorização (Alt 2)", refs["oficios"])
+            if it_a2_oficio_id:
+                 st.caption(f"**Assunto:** {refs['assuntos_oficios'].get(it_a2_oficio_id, 'Sem assunto')}")
+            df_a2_ida = _itinerario_editor("Ida", "a2_ida")
+            st.write("") # Espaçador
+            df_a2_volta = _itinerario_editor("Volta", "a2_volta")
+
+        with tabA3:
+            it_a3_oficio_id = _selectbox("Ofício de Autorização (Alt 3)", refs["oficios"])
+            if it_a3_oficio_id:
+                 st.caption(f"**Assunto:** {refs['assuntos_oficios'].get(it_a3_oficio_id, 'Sem assunto')}")
+            df_a3_ida = _itinerario_editor("Ida", "a3_ida")
+            st.write("") # Espaçador
+            df_a3_volta = _itinerario_editor("Volta", "a3_volta")
 
         # ── Observação ───────────────────────────────────────────
         st.divider()
@@ -177,11 +212,12 @@ def render():
     # ── Validação e gravação ─────────────────────────────────────
     if submitted:
         obrigatorios = {
-            "Número da Linha": numeroLinha,
-            "Vista":           vista,
-            "Data de Criação": dataCriacaoLinha,
-            "Serviço":         servico_label,
-            "Operador":        operador_label,
+            "Ofício de Criação": oficio_id,
+            "Número da Linha":   numeroLinha,
+            "Vista":             vista,
+            "Data de Criação":   dataCriacaoLinha,
+            "Serviço":           servico_label,
+            "Operador":          operador_label,
         }
         faltando = [k for k, v in obrigatorios.items() if not v]
 
@@ -212,7 +248,9 @@ def render():
             "itinerarios":              [], # Será preenchido abaixo
             "itinerarios_oficios": {
                 "R": it_reg_oficio_id,
-                "A": it_alt_oficio_id
+                "A1": it_a1_oficio_id,
+                "A2": it_a2_oficio_id,
+                "A3": it_a3_oficio_id
             }
         }
 
@@ -234,8 +272,12 @@ def render():
 
         processar_df(df_reg_ida, "R", "0")
         processar_df(df_reg_volta, "R", "1")
-        processar_df(df_alt_ida, "A", "0")
-        processar_df(df_alt_volta, "A", "1")
+        processar_df(df_a1_ida, "A1", "0")
+        processar_df(df_a1_volta, "A1", "1")
+        processar_df(df_a2_ida, "A2", "0")
+        processar_df(df_a2_volta, "A2", "1")
+        processar_df(df_a3_ida, "A3", "0")
+        processar_df(df_a3_volta, "A3", "1")
         
         dados["itinerarios"] = all_itinerarios
 
