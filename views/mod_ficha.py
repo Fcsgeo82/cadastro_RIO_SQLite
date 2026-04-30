@@ -5,6 +5,9 @@ import base64
 from models.db import obter_linha_por_id
 from views.mod_cadastro import _carregar_todas_referencias
 import streamlit.components.v1 as components
+import pydeck as pdk
+import pandas as pd
+from models.gtfs_loader import load_gtfs_data, processar_quadro_horario
 
 
 def _obter_label(dicionario_inverso, chave_busca):
@@ -345,3 +348,128 @@ def render(linha_id: str):
     encoded_html = urllib.parse.quote(html_doc)
     iframe_html = f'<iframe id="ficha-frame" src="data:text/html;charset=utf-8,{encoded_html}" style="width:100%;height:900px;border:none;"></iframe>'
     st.markdown(iframe_html, unsafe_allow_html=True)
+
+    # ── SEÇÃO GTFS ───────────────────────────────────────────
+    st.write("")
+    st.markdown("---")
+    st.markdown("### 📊 Planejamento Operacional (GTFS)")
+    
+    gtfs = load_gtfs_data(v_linha)
+    if gtfs:
+        st.success(f"✅ Dados encontrados no arquivo: `{gtfs['filename']}`")
+        
+        tab_mapa, tab_horario = st.tabs(["🗺️ Mapa do Itinerário", "🕒 Quadro Horário (Partidas)"])
+        
+        with tab_mapa:
+            shapes = gtfs["shapes"]
+            shape_dirs = gtfs.get("shape_directions", pd.DataFrame())
+            
+            if not shapes.empty:
+                # Seletor de Sentido
+                sentido_opcoes = {0: "➡️ Ida", 1: "⬅️ Volta"}
+                sel_sentidos = st.multiselect("Sentidos a exibir", [0, 1], default=[0, 1], format_func=lambda x: sentido_opcoes[x])
+                
+                # Filtrar shape_ids
+                ids_filtrados = shape_dirs[shape_dirs['direction_id'].isin(sel_sentidos)]['shape_id'].unique()
+                
+                path_data = []
+                point_data = [] # Para os markers de início/fim
+
+                # Centralização do mapa
+                first_shape = shapes[shapes['shape_id'].isin(ids_filtrados)]['shape_id'].iloc[0] if len(ids_filtrados) > 0 else shapes['shape_id'].iloc[0]
+                center_lat = shapes[shapes['shape_id'] == first_shape]['shape_pt_lat'].mean()
+                center_lon = shapes[shapes['shape_id'] == first_shape]['shape_pt_lon'].mean()
+
+                for sid in ids_filtrados:
+                    subset = shapes[shapes['shape_id'] == sid].sort_values('shape_pt_sequence')
+                    coords = subset[['shape_pt_lon', 'shape_pt_lat']].values.tolist()
+                    
+                    # Determinar cor pelo sentido
+                    direcao = shape_dirs[shape_dirs['shape_id'] == sid]['direction_id'].iloc[0]
+                    cor = [30, 144, 255] if direcao == 0 else [255, 140, 0] # Azul p/ Ida, Laranja p/ Volta
+                    
+                    path_data.append({
+                        "path": coords,
+                        "name": f"{sentido_opcoes[direcao]} (Shape: {sid})",
+                        "color": cor
+                    })
+                    
+                    # Ponto de Início
+                    point_data.append({
+                        "pos": coords[0],
+                        "name": f"Início - {sentido_opcoes[direcao]}",
+                        "color": [0, 200, 0] # Verde
+                    })
+                    # Ponto de Fim
+                    point_data.append({
+                        "pos": coords[-1],
+                        "name": f"Fim - {sentido_opcoes[direcao]}",
+                        "color": [255, 0, 0] # Vermelho
+                    })
+
+                view_state = pdk.ViewState(latitude=center_lat, longitude=center_lon, zoom=12)
+                
+                # Camada do Trajeto
+                layer_path = pdk.Layer(
+                    "PathLayer",
+                    path_data,
+                    get_path="path",
+                    get_color="color",
+                    width_min_pixels=3,
+                    pickable=True
+                )
+                
+                # Camada de Início/Fim
+                layer_points = pdk.Layer(
+                    "ScatterplotLayer",
+                    point_data,
+                    get_position="pos",
+                    get_color="color",
+                    get_radius=150,
+                    pickable=True
+                )
+
+                st.pydeck_chart(pdk.Deck(
+                    layers=[layer_path, layer_points], 
+                    initial_view_state=view_state, 
+                    tooltip={"text": "{name}"}
+                ))
+            else:
+                st.warning("Nenhuma geometria (shape) encontrada no GTFS para esta linha.")
+
+        with tab_horario:
+            partidas = processar_quadro_horario(gtfs)
+            if not partidas.empty:
+                sentidos = {0: "Ida", 1: "Volta"}
+                
+                # Filtro de Dia
+                dias_disponiveis = sorted(partidas['tipo_dia'].unique())
+                dia_sel = st.segmented_control("Tipo de Dia", dias_disponiveis, selection_mode="single", default=dias_disponiveis[0])
+                
+                if dia_sel:
+                    df_dia = partidas[partidas['tipo_dia'] == dia_sel]
+                    col_ida, col_volta = st.columns(2)
+                    
+                    with col_ida:
+                        st.markdown(f"**➡️ {sentidos.get(0, 'Ida')}**")
+                        ida_df = df_dia[df_dia['direction_id'] == 0].copy()
+                        if not ida_df.empty:
+                            ida_df['Horário'] = ida_df['departure_time'].str[:5]
+                            st.dataframe(ida_df[['Horário']].reset_index(drop=True), use_container_width=True, height=300)
+                        else:
+                            st.caption("Sem partidas registradas.")
+
+                    with col_volta:
+                        st.markdown(f"**⬅️ {sentidos.get(1, 'Volta')}**")
+                        volta_df = df_dia[df_dia['direction_id'] == 1].copy()
+                        if not volta_df.empty:
+                            volta_df['Horário'] = volta_df['departure_time'].str[:5]
+                            st.dataframe(volta_df[['Horário']].reset_index(drop=True), use_container_width=True, height=300)
+                        else:
+                            st.caption("Sem partidas registradas.")
+                
+                st.caption("💡 Os horários exibidos são as partidas da primeira parada de cada viagem conforme planejado no GTFS.")
+            else:
+                st.warning("Nenhum quadro horário encontrado no GTFS para esta linha.")
+    else:
+        st.info("ℹ️ Nenhum dado de GTFS (shapes/horários) vinculado a esta linha foi encontrado na pasta `data/gtfs`.")

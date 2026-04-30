@@ -39,7 +39,7 @@ streamlit run app.py
 
 - `python utils/init_db.py` — Create tables and seed initial data
 - `python utils/init_db_dados_fake.py` — Populate with test data (optional)
-- `python utils/populate_initial_logs.py` — Backfill history from existing data (run once after adding LogEventos)
+- `python utils/populate_initial_logs.py` — Backfill history from existing data (run once after adding LogEventos). Não é necessário no primeiro uso de um projeto novo, só é útil se o projeto já tiver dados e foi adicionado o LogEventos posteriormente.  
 
 ## Features
 

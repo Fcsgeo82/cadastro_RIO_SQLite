@@ -3,3 +3,6 @@ pandas
 uuid
 bcrypt
 streamlit-option-menu
+pydeck
+folium
+streamlit-folium

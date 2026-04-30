@@ -138,6 +138,12 @@ def render():
                 st.markdown("---")
                 st.markdown(f"**Ações para Linha: {linha_selecionada.get('Número', '')}**")
     
+                # Checagem rápida de GTFS
+                from models.gtfs_loader import load_gtfs_data
+                gtfs_check = load_gtfs_data(str(linha_selecionada.get('Número', '')))
+                if gtfs_check:
+                    st.info(f"📍 **GTFS Disponível:** Esta linha possui itinerário planejado e horários no arquivo `{gtfs_check['filename']}`. Veja os detalhes na **Ficha**.")
+                
                 user_role = st.session_state.get("role", "user")
                 
                 col_btn1, col_btn2, col_btn3, col_btn4 = st.columns([1.5, 1.5, 1.6, 1.5])
