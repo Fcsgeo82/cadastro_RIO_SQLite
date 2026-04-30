@@ -57,12 +57,17 @@ def load_gtfs_data(numero_linha: str):
                     all_shapes = pd.read_csv(f, dtype={'shape_id': str})
                     shapes_df = all_shapes[all_shapes['shape_id'].isin(shape_ids)]
             
-            # 4. Carregar Horários (Timetable)
-            # Precisamos de stop_times e calendar
+            # 4. Carregar Horários (Timetable) e Stops
+            # Precisamos de stop_times, stops e calendar
             with z.open('stop_times.txt') as f:
-                # Carregar apenas colunas necessárias para economizar memória
                 stop_times = pd.read_csv(f, usecols=['trip_id', 'arrival_time', 'departure_time', 'stop_id', 'stop_sequence'], 
                                          dtype={'trip_id': str, 'stop_id': str})
+            
+            with z.open('stops.txt') as f:
+                stops = pd.read_csv(f, dtype={'stop_id': str})
+            
+            # Merge stop_times com stops para ter nomes
+            stop_times = stop_times.merge(stops[['stop_id', 'stop_name', 'stop_lat', 'stop_lon']], on='stop_id', how='left')
             
             # Filtrar stop_times pelas trips da nossa rota
             route_stop_times = stop_times[stop_times['trip_id'].isin(route_trips['trip_id'])]

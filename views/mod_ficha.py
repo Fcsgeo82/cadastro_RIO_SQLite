@@ -358,22 +358,23 @@ def render(linha_id: str):
     if gtfs:
         st.success(f"✅ Dados encontrados no arquivo: `{gtfs['filename']}`")
         
-        tab_mapa, tab_horario = st.tabs(["🗺️ Mapa do Itinerário", "🕒 Quadro Horário (Partidas)"])
+        tab_mapa, tab_horario, tab_stops = st.tabs(["🗺️ Mapa do Itinerário", "🕒 Quadro Horário (Partidas)", "🛑 Pontos de Parada"])
         
         with tab_mapa:
+            # ... (mantém lógica anterior do mapa) ...
             shapes = gtfs["shapes"]
             shape_dirs = gtfs.get("shape_directions", pd.DataFrame())
             
             if not shapes.empty:
                 # Seletor de Sentido
                 sentido_opcoes = {0: "➡️ Ida", 1: "⬅️ Volta"}
-                sel_sentidos = st.multiselect("Sentidos a exibir", [0, 1], default=[0, 1], format_func=lambda x: sentido_opcoes[x])
+                sel_sentidos = st.multiselect("Sentidos a exibir", [0, 1], default=[0, 1], format_func=lambda x: sentido_opcoes[x], key="mapa_sentidos")
                 
                 # Filtrar shape_ids
                 ids_filtrados = shape_dirs[shape_dirs['direction_id'].isin(sel_sentidos)]['shape_id'].unique()
                 
                 path_data = []
-                point_data = [] # Para os markers de início/fim
+                stop_points = [] # Para os pontos de parada
 
                 # Centralização do mapa
                 first_shape = shapes[shapes['shape_id'].isin(ids_filtrados)]['shape_id'].iloc[0] if len(ids_filtrados) > 0 else shapes['shape_id'].iloc[0]
@@ -393,19 +394,20 @@ def render(linha_id: str):
                         "name": f"{sentido_opcoes[direcao]} (Shape: {sid})",
                         "color": cor
                     })
-                    
-                    # Ponto de Início
-                    point_data.append({
-                        "pos": coords[0],
-                        "name": f"Início - {sentido_opcoes[direcao]}",
-                        "color": [0, 200, 0] # Verde
-                    })
-                    # Ponto de Fim
-                    point_data.append({
-                        "pos": coords[-1],
-                        "name": f"Fim - {sentido_opcoes[direcao]}",
-                        "color": [255, 0, 0] # Vermelho
-                    })
+
+                # Adicionar pontos de parada do Timetable
+                df_st = gtfs["timetable"]
+                if not df_st.empty:
+                    # Filtrar apenas os sentidos selecionados
+                    df_st_sel = df_st[df_st['direction_id'].isin(sel_sentidos)]
+                    # Pegar paradas únicas (evitar sobreposição de múltiplas trips)
+                    unique_stops = df_st_sel[['stop_id', 'stop_name', 'stop_lat', 'stop_lon']].drop_duplicates('stop_id')
+                    for _, row in unique_stops.iterrows():
+                        stop_points.append({
+                            "pos": [row['stop_lon'], row['stop_lat']],
+                            "name": row['stop_name'],
+                            "color": [255, 255, 255]
+                        })
 
                 view_state = pdk.ViewState(latitude=center_lat, longitude=center_lon, zoom=12)
                 
@@ -419,18 +421,23 @@ def render(linha_id: str):
                     pickable=True
                 )
                 
-                # Camada de Início/Fim
-                layer_points = pdk.Layer(
+                # Camada de Pontos de Parada (Destaque único com tamanho fixo em pixels)
+                layer_stops = pdk.Layer(
                     "ScatterplotLayer",
-                    point_data,
+                    stop_points,
                     get_position="pos",
                     get_color="color",
-                    get_radius=150,
+                    radius_units="pixels", # Unidade em pixels para tamanho constante no zoom
+                    get_radius=6, # Tamanho visual fixo
+                    get_line_color=[0, 0, 0],
+                    get_line_width=1,
+                    stroked=True,
+                    filled=True,
                     pickable=True
                 )
 
                 st.pydeck_chart(pdk.Deck(
-                    layers=[layer_path, layer_points], 
+                    layers=[layer_path, layer_stops], 
                     initial_view_state=view_state, 
                     tooltip={"text": "{name}"}
                 ))
@@ -444,7 +451,7 @@ def render(linha_id: str):
                 
                 # Filtro de Dia
                 dias_disponiveis = sorted(partidas['tipo_dia'].unique())
-                dia_sel = st.segmented_control("Tipo de Dia", dias_disponiveis, selection_mode="single", default=dias_disponiveis[0])
+                dia_sel = st.segmented_control("Tipo de Dia", dias_disponiveis, selection_mode="single", default=dias_disponiveis[0], key="gtfs_dia_sel")
                 
                 if dia_sel:
                     df_dia = partidas[partidas['tipo_dia'] == dia_sel]
@@ -471,5 +478,32 @@ def render(linha_id: str):
                 st.caption("💡 Os horários exibidos são as partidas da primeira parada de cada viagem conforme planejado no GTFS.")
             else:
                 st.warning("Nenhum quadro horário encontrado no GTFS para esta linha.")
+
+        with tab_stops:
+            df_stops = gtfs["timetable"]
+            if not df_stops.empty:
+                sentidos = {0: "Ida", 1: "Volta"}
+                col_s_ida, col_s_volta = st.columns(2)
+                
+                for s_id, col in zip([0, 1], [col_s_ida, col_s_volta]):
+                    with col:
+                        st.markdown(f"**📍 {sentidos.get(s_id)}**")
+                        df_s = df_stops[df_stops['direction_id'] == s_id]
+                        if not df_s.empty:
+                            # Pegar a trip que tem mais pontos (para garantir a lista completa)
+                            trip_counts = df_s.groupby('trip_id')['stop_sequence'].count()
+                            trip_exemplo = trip_counts.idxmax()
+                            pontos = df_s[df_s['trip_id'] == trip_exemplo].sort_values('stop_sequence')
+                            
+                            st.dataframe(
+                                pontos[['stop_sequence', 'stop_name']].rename(columns={'stop_sequence': 'Seq', 'stop_name': 'Ponto de Parada'}),
+                                use_container_width=True,
+                                hide_index=True,
+                                height=450
+                            )
+                        else:
+                            st.caption("Nenhum ponto registrado para este sentido.")
+            else:
+                st.warning("Nenhum dado de pontos de parada encontrado no GTFS.")
     else:
         st.info("ℹ️ Nenhum dado de GTFS (shapes/horários) vinculado a esta linha foi encontrado na pasta `data/gtfs`.")

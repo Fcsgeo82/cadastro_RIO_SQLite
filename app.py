@@ -116,9 +116,12 @@ if not st.session_state.get('logged_in'):
         with st.form(key="login_form", clear_on_submit=True):
             username = st.text_input("Usuário", placeholder="admin ou user")
             password = st.text_input("Senha", type="password")
-            col_btn1, col_btn2 = st.columns([4,1])
+            col_btn1, col_btn2 = st.columns([1,1])
             with col_btn1:
-                submitted = st.form_submit_button("Entrar", type="primary", width='stretch')
+                submitted = st.form_submit_button("Entrar", type="primary", use_container_width=True)
+            with col_btn2:
+                public_access = st.form_submit_button("Acesso Público", type="secondary", use_container_width=True)
+                
             if submitted:
                 user = db.verify_login(username, password)
                 if user and "error" not in user:
@@ -129,6 +132,11 @@ if not st.session_state.get('logged_in'):
                     st.error(f"🚫 {user.get('message')}")
                 else:
                     st.error("Usuário ou senha incorretos.")
+            
+            if public_access:
+                st.session_state.update({'logged_in': True, 'user': 'Visitante', 'role': 'user'})
+                st.success("Acessando como visitante...")
+                st.rerun()
     
     with tab_forgot:
         username = st.text_input("Usuário")
