@@ -16,6 +16,7 @@ from views import mod_ficha
 from views import mod_edicao
 from views import mod_historico
 from views import mod_usuarios
+from views import mod_gtfs
 from models import db
 
 from views.mod_consulta import _refs_consulta
@@ -312,11 +313,9 @@ if aba == "Principal":
     # --- Abas principais ---
     tab_labels = ["🔍  Consultar Linhas"]
     if st.session_state.role in ["admin", "editor"]:
-        tab_labels += ["➕  Cadastrar Linha", "🗂️  Tabelas de Referência"]
+        tab_labels += ["➕  Cadastrar Linha", "📜  Histórico de Linhas", "🗂️  Tabelas de Referência", "📦  GTFS"]
     if st.session_state.role == "admin":
         tab_labels += ["👥  Usuários"]
-    if st.session_state.role in ["admin", "editor"]:
-        tab_labels += ["📜  Histórico de Linhas"]
     
     tabs = st.tabs(tab_labels)
     
@@ -326,90 +325,89 @@ if aba == "Principal":
     if st.session_state.role in ["admin", "editor"]:
         with tabs[1]:
             mod_cadastro.render()
+        
         with tabs[2]:
+            from models.db import consultar_historico
+            
+            st.markdown("### 📜 Histórico de Linhas")
+            
+            col1, col2, col3 = st.columns([2, 2, 1])
+            with col1:
+                filtro_tipo = st.multiselect(
+                    "Tipo de Evento",
+                    options=["Criação", "Alteração", "Exclusão"],
+                    default=["Criação", "Alteração", "Exclusão"],
+                    key="filtro_tipo_historico"
+                )
+            with col2:
+                filtro_num = st.text_input("Buscar linha", placeholder="Ex: 474", key="filtro_num_historico")
+            with col3:
+                if st.button("🔍 Buscar", type="primary", width='stretch', key="buscar_historico"):
+                    df = consultar_historico(numero=filtro_num)
+                    st.session_state["resultado_historico"] = df
+            
+            if "resultado_historico" not in st.session_state or st.button("🔄 Atualizar", key="atualizar_historico"):
+                df = consultar_historico()
+                st.session_state["resultado_historico"] = df
+            
+            df = st.session_state.get("resultado_historico", pd.DataFrame())
+            
+            # Filter by tipo if multiselect has multiple values (create copy to avoid index issues)
+            df_exibir = df.copy() if df.empty else df.copy()
+            if filtro_tipo and len(filtro_tipo) < 3 and not df.empty:
+                df_exibir = df[df['Tipo'].isin(filtro_tipo)]
+            
+            if df_exibir.empty:
+                st.info("Nenhum registro de histórico encontrado.")
+            else:
+                st.markdown(f"**{len(df_exibir)}** {'evento' if len(df_exibir) == 1 else 'eventos'}")
+                
+                # Hide technical columns from display but keep in df for selection
+                cols_visiveis = [c for c in df_exibir.columns if c not in ("linhaID", "status")]
+                evento = st.dataframe(
+                    df_exibir[cols_visiveis],
+                    width='stretch',
+                    hide_index=True,
+                    on_select="rerun",
+                    selection_mode="single-row",
+                )
+                
+                if evento and len(evento.selection.rows) > 0:
+                    idx = evento.selection.rows[0]
+                    linha_selecionada = df_exibir.iloc[idx]
+                    linha_id = linha_selecionada["linhaID"]
+                    status = linha_selecionada.get("status", "ativa")
+                    
+                    st.markdown("---")
+                    col_btn1, col_btn2 = st.columns([1, 4])
+                    with col_btn1:
+                        if st.button("👁️ Ver Ficha", width='stretch', key="ver_ficha_historico"):
+                            st.session_state["linha_acao_id"] = linha_id
+                            # Determine which view to show based on status
+                            if status == "excluida":
+                                st.session_state["aba_ativa"] = "FichaExcluida"
+                            else:
+                                st.session_state["aba_ativa"] = "Ficha"
+                            st.rerun()
+                
+                buf = io.StringIO()
+                df_exibir.to_csv(buf, index=False, encoding="utf-8-sig")
+                st.download_button(
+                    label="⬇️ Exportar CSV",
+                    data=buf.getvalue().encode("utf-8-sig"),
+                    file_name="historico_linhas.csv",
+                    mime="text/csv",
+                )
+
+        with tabs[3]:
             mod_cadastro_ref.render()
+        with tabs[4]:
+            mod_gtfs.render()
     
     # Usuários (só admin)
-    if st.session_state.role == "admin" and len(tab_labels) > 3:
-        with tabs[3]:
+    if st.session_state.role == "admin" and len(tab_labels) > 5:
+        with tabs[5]:
             mod_usuarios.render()
-    
-    # Histórico de Linhas (admin e editor)
-    if st.session_state.role in ["admin", "editor"]:
-        idx_historico = 3 if st.session_state.role == "editor" else 4
-        if len(tab_labels) > idx_historico:
-            with tabs[idx_historico]:
-                from models.db import consultar_historico
-                
-                st.markdown("### 📜 Histórico de Linhas")
-                
-                col1, col2, col3 = st.columns([2, 2, 1])
-                with col1:
-                    filtro_tipo = st.multiselect(
-                        "Tipo de Evento",
-                        options=["Criação", "Alteração", "Exclusão"],
-                        default=["Criação", "Alteração", "Exclusão"],
-                        key="filtro_tipo_historico"
-                    )
-                with col2:
-                    filtro_num = st.text_input("Buscar linha", placeholder="Ex: 474", key="filtro_num_historico")
-                with col3:
-                    if st.button("🔍 Buscar", type="primary", width='stretch', key="buscar_historico"):
-                        df = consultar_historico(numero=filtro_num)
-                        st.session_state["resultado_historico"] = df
-                
-                if "resultado_historico" not in st.session_state or st.button("🔄 Atualizar", key="atualizar_historico"):
-                    df = consultar_historico()
-                    st.session_state["resultado_historico"] = df
-                
-                df = st.session_state.get("resultado_historico", pd.DataFrame())
-                
-                # Filter by tipo if multiselect has multiple values (create copy to avoid index issues)
-                df_exibir = df.copy() if df.empty else df.copy()
-                if filtro_tipo and len(filtro_tipo) < 3 and not df.empty:
-                    df_exibir = df[df['Tipo'].isin(filtro_tipo)]
-                
-                if df_exibir.empty:
-                    st.info("Nenhum registro de histórico encontrado.")
-                else:
-                    st.markdown(f"**{len(df_exibir)}** {'evento' if len(df_exibir) == 1 else 'eventos'}")
-                    
-                    # Hide technical columns from display but keep in df for selection
-                    cols_visiveis = [c for c in df_exibir.columns if c not in ("linhaID", "status")]
-                    evento = st.dataframe(
-                        df_exibir[cols_visiveis],
-                        width='stretch',
-                        hide_index=True,
-                        on_select="rerun",
-                        selection_mode="single-row",
-                    )
-                    
-                    if evento and len(evento.selection.rows) > 0:
-                        idx = evento.selection.rows[0]
-                        linha_selecionada = df_exibir.iloc[idx]
-                        linha_id = linha_selecionada["linhaID"]
-                        status = linha_selecionada.get("status", "ativa")
-                        
-                        st.markdown("---")
-                        col_btn1, col_btn2 = st.columns([1, 4])
-                        with col_btn1:
-                            if st.button("👁️ Ver Ficha", width='stretch', key="ver_ficha_historico"):
-                                st.session_state["linha_acao_id"] = linha_id
-                                # Determine which view to show based on status
-                                if status == "excluida":
-                                    st.session_state["aba_ativa"] = "FichaExcluida"
-                                else:
-                                    st.session_state["aba_ativa"] = "Ficha"
-                                st.rerun()
-                    
-                    buf = io.StringIO()
-                    df_exibir.to_csv(buf, index=False, encoding="utf-8-sig")
-                    st.download_button(
-                        label="⬇️ Exportar CSV",
-                        data=buf.getvalue().encode("utf-8-sig"),
-                        file_name="historico_linhas.csv",
-                        mime="text/csv",
-                    )
 
 elif aba == "Ficha":
     linha_id = st.session_state.get("linha_acao_id")
