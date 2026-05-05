@@ -125,14 +125,32 @@ def render(linha_id: str):
         with col7:
             tipo_sistema_id  = _selectbox("Tipo de Operação", refs.get("tipos_sistema", {}), dados_bd.get("tipoSistema"))
 
-        col8, col9, col10 = st.columns(3)
-        with col8:
-            parametro_id     = _selectbox("Parâmetro", refs.get("parametros", {}), dados_bd.get("parametro_novo"))
-        with col9:
-            caracteristica_id = _selectbox("Característica", refs.get("caracteristicas", {}), dados_bd.get("caracteristica"))
-        with col10:
+        col11, col12 = st.columns(2)
+        with col11:
+            # Pega os IDs salvos e separa por vírgula
+            ids_salvos = (dados_bd.get("tipologiaRede") or "").split(",") if dados_bd.get("tipologiaRede") else []
+            # Converte IDs em rótulos para o multiselect (pre-seleção)
+            opcoes_tipologia = list(refs.get("tipologia", {}).keys())
+            mapa_id_label = {str(v): k for k, v in refs.get("tipologia", {}).items()}
+            default_labels = [mapa_id_label[i] for i in ids_salvos if i in mapa_id_label]
+            
+            tipologia_selecionadas = st.multiselect("Tipologia de Rede", options=opcoes_tipologia, default=default_labels)
+            tipologia_id = ",".join([str(refs["tipologia"][sel]) for sel in tipologia_selecionadas]) if tipologia_selecionadas else None
+        with col12:
+            abrangencia_id   = _selectbox("Abrangência Territorial", refs.get("abrangencia", {}), dados_bd.get("abrangenciaTerritorial"))
+        
+        col13, col14 = st.columns(2)
+        with col13:
+            geometria_id     = _selectbox("Geometria do Traçado", refs.get("geometria", {}), dados_bd.get("geometriaTracado"))
+        with col14:
+            hierarquia_id    = _selectbox("Hierarquia de Atendimento", refs.get("hierarquia", {}), dados_bd.get("hierarquiaAtendimento"))
+
+        col15, col16 = st.columns(2)
+        with col15:
             grupamento_id    = str(dados_bd.get("grupamentoBRS")) if dados_bd.get("grupamentoBRS") else None
             grupamento_label = _selectbox("Grupamento BRS", refs.get("grupamentos", {}), grupamento_id)
+        with col16:
+            pass # Espaçador
 
         # ── Quilometragem ────────────────────────────────────────
         st.divider()
@@ -303,9 +321,13 @@ def render(linha_id: str):
             "tipoSistema":              tipo_sistema_id,
             "kmIDA":                    kmIDA if kmIDA else None,
             "kmVOLTA":                  kmVOLTA if kmVOLTA else None,
-            "parametro_novo":           parametro_id,
-            "caracteristica":           caracteristica_id,
+            "parametro_novo":           None,
+            "caracteristica":           None,
             "grupamentoBRS":            grupamento_label,
+            "tipologiaRede":            tipologia_id,
+            "abrangenciaTerritorial":   abrangencia_id,
+            "geometriaTracado":         geometria_id,
+            "hierarquiaAtendimento":    hierarquia_id,
             "frotaTipoVeiculo":         frota_tipo_veiculo_id,
             "frotaUltimoOficio":        frota_ultimo_oficio_id,
             "frotaDataOficio":          str(frotaDataOficio) if frotaDataOficio else None,

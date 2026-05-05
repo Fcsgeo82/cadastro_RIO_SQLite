@@ -286,6 +286,74 @@ def _form_operador():
         _feedback(*_inserir("operador", row))
 
 
+def _form_tipologia_rede():
+    st.markdown("**Campos:** Descrição da tipologia de rede.")
+    with st.form("form_tipologia", clear_on_submit=True):
+        descricao = st.text_input("Descrição *", placeholder="Ex: Dia Útil")
+        submitted = st.form_submit_button("💾 Salvar", type="primary", width='stretch')
+
+    if submitted:
+        if not descricao.strip():
+            st.error("⚠️ O campo Descrição é obrigatório.")
+            return
+        row = {
+            "tipologiaID": str(uuid.uuid4()),
+            "descricao":   descricao.strip(),
+        }
+        _feedback(*_inserir("TipologiaRede", row))
+
+
+def _form_abrangencia_territorial():
+    st.markdown("**Campos:** Descrição da abrangência territorial.")
+    with st.form("form_abrangencia", clear_on_submit=True):
+        descricao = st.text_input("Descrição *", placeholder="Ex: Serviço Local")
+        submitted = st.form_submit_button("💾 Salvar", type="primary", width='stretch')
+
+    if submitted:
+        if not descricao.strip():
+            st.error("⚠️ O campo Descrição é obrigatório.")
+            return
+        row = {
+            "abrangenciaID": str(uuid.uuid4()),
+            "descricao":     descricao.strip(),
+        }
+        _feedback(*_inserir("AbrangenciaTerritorial", row))
+
+
+def _form_geometria_tracado():
+    st.markdown("**Campos:** Classificação da geometria do traçado.")
+    with st.form("form_geometria", clear_on_submit=True):
+        classificacao = st.text_input("Classificação *", placeholder="Ex: Serviço Radial")
+        submitted = st.form_submit_button("💾 Salvar", type="primary", width='stretch')
+
+    if submitted:
+        if not classificacao.strip():
+            st.error("⚠️ O campo Classificação é obrigatório.")
+            return
+        row = {
+            "geometriaID":   str(uuid.uuid4()),
+            "classificacao": classificacao.strip(),
+        }
+        _feedback(*_inserir("GeometriaTracado", row))
+
+
+def _form_hierarquia_atendimento():
+    st.markdown("**Campos:** Classificação da hierarquia de atendimento.")
+    with st.form("form_hierarquia", clear_on_submit=True):
+        classificacao = st.text_input("Classificação *", placeholder="Ex: Distribuidora")
+        submitted = st.form_submit_button("💾 Salvar", type="primary", width='stretch')
+
+    if submitted:
+        if not classificacao.strip():
+            st.error("⚠️ O campo Classificação é obrigatório.")
+            return
+        row = {
+            "hierarquiaID":  str(uuid.uuid4()),
+            "classificacao": classificacao.strip(),
+        }
+        _feedback(*_inserir("HierarquiaAtendimento", row))
+
+
 # ------------------------------------------------------------------
 # MAPA DE TABELAS
 # ------------------------------------------------------------------
@@ -335,6 +403,26 @@ TABELAS = {
         "form":     _form_tipo_veiculo,
         "icone":    "🚌",
         "tabela":   "TipoVeiculo",
+    },
+    "Tipologia de Rede": {
+        "form":     _form_tipologia_rede,
+        "icone":    "🕸️",
+        "tabela":   "TipologiaRede",
+    },
+    "Abrangência Territorial": {
+        "form":     _form_abrangencia_territorial,
+        "icone":    "🌍",
+        "tabela":   "AbrangenciaTerritorial",
+    },
+    "Geometria do Traçado": {
+        "form":     _form_geometria_tracado,
+        "icone":    "📏",
+        "tabela":   "GeometriaTracado",
+    },
+    "Hierarquia de Atendimento": {
+        "form":     _form_hierarquia_atendimento,
+        "icone":    "🪜",
+        "tabela":   "HierarquiaAtendimento",
     },
 }
 

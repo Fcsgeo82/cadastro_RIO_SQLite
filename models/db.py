@@ -137,6 +137,50 @@ def carregar_grupamentos() -> pd.DataFrame:
     return df.rename(columns={"grupamentoBRSID": "id", "descricao": "label"})
 
 
+def carregar_tipologia_rede() -> pd.DataFrame:
+    df = _query_df(f"""
+        SELECT tipologiaID, descricao
+        FROM TipologiaRede
+        ORDER BY descricao
+    """)
+    if df.empty:
+        return df
+    return df.rename(columns={"tipologiaID": "id", "descricao": "label"})
+
+
+def carregar_abrangencia_territorial() -> pd.DataFrame:
+    df = _query_df(f"""
+        SELECT abrangenciaID, descricao
+        FROM AbrangenciaTerritorial
+        ORDER BY descricao
+    """)
+    if df.empty:
+        return df
+    return df.rename(columns={"abrangenciaID": "id", "descricao": "label"})
+
+
+def carregar_geometria_tracado() -> pd.DataFrame:
+    df = _query_df(f"""
+        SELECT geometriaID, classificacao
+        FROM GeometriaTracado
+        ORDER BY classificacao
+    """)
+    if df.empty:
+        return df
+    return df.rename(columns={"geometriaID": "id", "classificacao": "label"})
+
+
+def carregar_hierarquia_atendimento() -> pd.DataFrame:
+    df = _query_df(f"""
+        SELECT hierarquiaID, classificacao
+        FROM HierarquiaAtendimento
+        ORDER BY classificacao
+    """)
+    if df.empty:
+        return df
+    return df.rename(columns={"hierarquiaID": "id", "classificacao": "label"})
+
+
 def carregar_oficios() -> pd.DataFrame:
     df = _query_df("""
         SELECT oficioID, numeroOficio, dataOficio
@@ -202,6 +246,10 @@ def inserir_linha(dados: dict) -> tuple[bool, str]:
         "observacao":            dados.get("observacao", "").strip() or None,
         "dataCadastro":          agora,
         "ultimaAtualizacao":     agora,
+        "tipologiaRede":         dados.get("tipologiaRede") or None,
+        "abrangenciaTerritorial": dados.get("abrangenciaTerritorial") or None,
+        "geometriaTracado":      dados.get("geometriaTracado") or None,
+        "hierarquiaAtendimento": dados.get("hierarquiaAtendimento") or None,
     }
 
     cols = ", ".join(row.keys())
@@ -251,6 +299,10 @@ def consultar_linhas(
     parametro_id: str = "",
     frota_tipo_veiculo_id: str = "",
     grupamento_brs_id: str = "",
+    tipologia_id: str = "",
+    abrangencia_id: str = "",
+    geometria_id: str = "",
+    hierarquia_id: str = "",
 ) -> pd.DataFrame:
     """Consulta linhas com filtros e retorna DataFrame enriquecido com JOINs."""
     condicoes = ["1=1"]
@@ -280,6 +332,18 @@ def consultar_linhas(
     if grupamento_brs_id:
         condicoes.append("l.grupamentoBRS = ?")
         params.append(grupamento_brs_id)
+    if tipologia_id:
+        condicoes.append("l.tipologiaRede = ?")
+        params.append(tipologia_id)
+    if abrangencia_id:
+        condicoes.append("l.abrangenciaTerritorial = ?")
+        params.append(abrangencia_id)
+    if geometria_id:
+        condicoes.append("l.geometriaTracado = ?")
+        params.append(geometria_id)
+    if hierarquia_id:
+        condicoes.append("l.hierarquiaAtendimento = ?")
+        params.append(hierarquia_id)
         
     if termo_geral.strip():
         termo = f"%{termo_geral.strip()}%"
@@ -297,10 +361,14 @@ def consultar_linhas(
              ao.descricao LIKE ? OR
              ts.descricao LIKE ? OR
              p.descricao LIKE ? OR
-             c.descricao LIKE ?)
+             c.descricao LIKE ? OR
+             tr.descricao LIKE ? OR
+             at.descricao LIKE ? OR
+             gt.classificacao LIKE ? OR
+             ha.classificacao LIKE ?)
         """
         condicoes.append(cond_geral)
-        params.extend([termo] * 13)
+        params.extend([termo] * 17)
 
     where = " AND ".join(condicoes)
 
@@ -332,6 +400,10 @@ def consultar_linhas(
         LEFT JOIN Parametro              p  ON l.parametro_novo  = p.parametroID
         LEFT JOIN Caracteristica         c  ON l.caracteristica  = c.caracteristicaID
         LEFT JOIN TipoVeiculo            tv ON l.frotaTipoVeiculo = tv.tipoVeiculoID
+        LEFT JOIN TipologiaRede          tr ON l.tipologiaRede   = tr.tipologiaID
+        LEFT JOIN AbrangenciaTerritorial at ON l.abrangenciaTerritorial = at.abrangenciaID
+        LEFT JOIN GeometriaTracado       gt ON l.geometriaTracado = gt.geometriaID
+        LEFT JOIN HierarquiaAtendimento  ha ON l.hierarquiaAtendimento = ha.hierarquiaID
         WHERE {where}
         ORDER BY l.dataCadastro DESC
         LIMIT 500
@@ -448,6 +520,10 @@ def atualizar_linha(linha_id: str, dados: dict) -> tuple[bool, str]:
         "frotaDataOficio":       dados.get("frotaDataOficio") or None,
         "observacao":            dados.get("observacao", "").strip() or None,
         "ultimaAtualizacao":     agora,
+        "tipologiaRede":         dados.get("tipologiaRede") or None,
+        "abrangenciaTerritorial": dados.get("abrangenciaTerritorial") or None,
+        "geometriaTracado":      dados.get("geometriaTracado") or None,
+        "hierarquiaAtendimento": dados.get("hierarquiaAtendimento") or None,
     }
 
     set_clause = ", ".join([f"{k} = ?" for k in row.keys()])

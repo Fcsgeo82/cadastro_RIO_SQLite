@@ -13,6 +13,20 @@ from models.gtfs_loader import load_gtfs_data, processar_quadro_horario
 def _obter_label(dicionario_inverso, chave_busca):
     if not chave_busca:
         return "-"
+    
+    # Se for uma lista separada por vírgula (múltiplas seleções)
+    if isinstance(chave_busca, str) and "," in chave_busca:
+        ids = [i.strip() for i in chave_busca.split(",")]
+        labels = []
+        for i in ids:
+            label_encontrado = None
+            for label, id_ in dicionario_inverso.items():
+                if str(id_) == str(i):
+                    label_encontrado = label
+                    break
+            labels.append(label_encontrado if label_encontrado else i)
+        return ", ".join(labels)
+
     for label, id_ in dicionario_inverso.items():
         if str(id_) == str(chave_busca):
             return label
@@ -48,14 +62,17 @@ def render(linha_id: str):
         v_criacao = v_criacao[8:10] + "/" + v_criacao[5:7] + "/" + v_criacao[0:4]
 
     v_tipo = _obter_label(refs.get('tipos_sistema', {}), dados.get('tipoSistema'))
-    v_caracteristica = _obter_label(refs.get('caracteristicas', {}), dados.get('caracteristica'))
     v_area_op = _obter_label(refs.get('areas_op', {}), dados.get('areaOperacional'))
     v_grupamento = _obter_label(refs.get('grupamentos', {}), dados.get('grupamentoBRS'))
-    v_parametro = _obter_label(refs.get('parametros', {}), dados.get('parametro_novo'))
     
     v_km_ida = str(dados.get('kmIDA')).replace('.',',') if dados.get('kmIDA') else '-'
     v_km_volta = str(dados.get('kmVOLTA')).replace('.',',') if dados.get('kmVOLTA') else '-'
     v_obs = dados.get('observacao') or '-'
+
+    v_tipologia = _obter_label(refs.get('tipologia', {}), dados.get('tipologiaRede'))
+    v_abrangencia = _obter_label(refs.get('abrangencia', {}), dados.get('abrangenciaTerritorial'))
+    v_geometria = _obter_label(refs.get('geometria', {}), dados.get('geometriaTracado'))
+    v_hierarquia = _obter_label(refs.get('hierarquia', {}), dados.get('hierarquiaAtendimento'))
 
     def _of_html(of_id):
         if not of_id: return "-"
@@ -216,15 +233,13 @@ def render(linha_id: str):
             </div>
         </div>
 
-        <!-- CLASSIFICAÇÃO -->
         <div class="section">
             <div class="section-header">CLASSIFICAÇÃO</div>
             <div class="data-grid">
-                <div class="field" style="grid-column: span 6;"><span class="label">Parâmetro:</span><span class="value">{v_parametro}</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Hierarquia do Atendimento:</span><span class="value">{v_caracteristica}</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Abrangência Territorial:</span><span class="value">-</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Tipologia de Rede:</span><span class="value">-</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Geometria:</span><span class="value">-</span></div>
+                <div class="field" style="grid-column: span 6;"><span class="label">Hierarquia do Atendimento:</span><span class="value">{v_hierarquia}</span></div>
+                <div class="field" style="grid-column: span 6;"><span class="label">Abrangência Territorial:</span><span class="value">{v_abrangencia}</span></div>
+                <div class="field" style="grid-column: span 6;"><span class="label">Tipologia de Rede:</span><span class="value">{v_tipologia}</span></div>
+                <div class="field" style="grid-column: span 6;"><span class="label">Geometria:</span><span class="value">{v_geometria}</span></div>
             </div>
         </div>
 

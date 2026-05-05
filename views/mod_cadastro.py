@@ -12,7 +12,9 @@ from models.db import (
     carregar_areas_operacionais, 
     carregar_parametros_novos, carregar_caracteristicas,
     carregar_tipos_sistema, carregar_tipos_veiculo,
-    carregar_grupamentos, carregar_oficios, carregar_assuntos_oficios
+    carregar_grupamentos, carregar_oficios, carregar_assuntos_oficios,
+    carregar_tipologia_rede, carregar_abrangencia_territorial,
+    carregar_geometria_tracado, carregar_hierarquia_atendimento
 )
 
 
@@ -27,12 +29,14 @@ def _carregar_todas_referencias():
         "areas_op":        opcoes(carregar_areas_operacionais()),
         "tipos_sistema":   opcoes(carregar_tipos_sistema()),
         "tipos_veiculo":   opcoes(carregar_tipos_veiculo()),
-        "parametros":      opcoes(carregar_parametros_novos()),
-        "caracteristicas": opcoes(carregar_caracteristicas()),
         "grupamentos":     opcoes(carregar_grupamentos()),
         "oficios":         opcoes(df_of),
         "datas_oficios":   dict(zip(df_of["id"], df_of["dataOficio"])) if not df_of.empty else {},
         "assuntos_oficios": carregar_assuntos_oficios(),
+        "tipologia":       opcoes(carregar_tipologia_rede()),
+        "abrangencia":     opcoes(carregar_abrangencia_territorial()),
+        "geometria":       opcoes(carregar_geometria_tracado()),
+        "hierarquia":      opcoes(carregar_hierarquia_atendimento()),
     }
 
 
@@ -121,23 +125,35 @@ def render():
         with col7:
             tipo_sistema_id  = _selectbox("Tipo de Operação", refs["tipos_sistema"])
 
-        col8, col9, col10 = st.columns(3)
-        with col8:
-            parametro_id     = _selectbox("Parâmetro", refs["parametros"])
-        with col9:
-            caracteristica_id = _selectbox("Característica", refs["caracteristicas"])
-        with col10:
+        col11, col12 = st.columns(2)
+        with col11:
+            tipologia_selecionadas = st.multiselect("Tipologia de Rede", options=list(refs["tipologia"].keys()))
+            # Mapeia rótulos para IDs e junta com vírgula
+            tipologia_id = ",".join([str(refs["tipologia"][sel]) for sel in tipologia_selecionadas]) if tipologia_selecionadas else None
+        with col12:
+            abrangencia_id   = _selectbox("Abrangência Territorial", refs["abrangencia"])
+        
+        col13, col14 = st.columns(2)
+        with col13:
+            geometria_id     = _selectbox("Geometria do Traçado", refs["geometria"])
+        with col14:
+            hierarquia_id    = _selectbox("Hierarquia de Atendimento", refs["hierarquia"])
+
+        col15, col16 = st.columns(2)
+        with col15:
             grupamento_label = _selectbox("Grupamento BRS", refs["grupamentos"])
+        with col16:
+            pass # Espaçador
 
         # ── Quilometragem ────────────────────────────────────────
         st.divider()
         st.markdown("#### 📏 Quilometragem")
 
-        col12, col13 = st.columns(2)
-        with col12:
+        colQ1, colQ2 = st.columns(2)
+        with colQ1:
             kmIDA   = st.number_input("KM Ida",   min_value=0.0, step=0.1, value=None,
                                        placeholder="Ex: 12.5")
-        with col13:
+        with colQ2:
             kmVOLTA = st.number_input("KM Volta", min_value=0.0, step=0.1, value=None,
                                        placeholder="Ex: 12.5")
 
@@ -239,12 +255,16 @@ def render():
             "tipoSistema":              tipo_sistema_id,
             "kmIDA":                    kmIDA,
             "kmVOLTA":                  kmVOLTA,
-            "parametro_novo":           parametro_id,
-            "caracteristica":           caracteristica_id,
+            "parametro_novo":           None,
+            "caracteristica":           None,
             "grupamentoBRS":            grupamento_label,
             "frotaUltimoOficio":        frota_ultimo_oficio_id,
             "frotaDataOficio":          str(frotaDataOficio) if frotaDataOficio else None,
             "observacao":               observacao,
+            "tipologiaRede":            tipologia_id,
+            "abrangenciaTerritorial":   abrangencia_id,
+            "geometriaTracado":         geometria_id,
+            "hierarquiaAtendimento":    hierarquia_id,
             "itinerarios":              [], # Será preenchido abaixo
             "itinerarios_oficios": {
                 "R": it_reg_oficio_id,

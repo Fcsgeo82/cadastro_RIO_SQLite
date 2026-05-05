@@ -51,7 +51,11 @@ def init_db():
     "ultimaAtualizacao TIMESTAMP",
     "areaGeografica TEXT",
     "classificacaoEspacial TEXT",
-    "parametro TEXT"
+    "parametro TEXT",
+    "tipologiaRede TEXT",
+    "abrangenciaTerritorial TEXT",
+    "geometriaTracado TEXT",
+    "hierarquiaAtendimento TEXT"
 ],
         "Oficio": [
             "oficioID TEXT PRIMARY KEY",
@@ -163,6 +167,22 @@ def init_db():
         "usuario TEXT",
         "oficioID TEXT",
         "detalhes TEXT"
+    ],
+    "TipologiaRede": [
+        "tipologiaID TEXT PRIMARY KEY",
+        "descricao TEXT"
+    ],
+    "AbrangenciaTerritorial": [
+        "abrangenciaID TEXT PRIMARY KEY",
+        "descricao TEXT"
+    ],
+    "GeometriaTracado": [
+        "geometriaID TEXT PRIMARY KEY",
+        "classificacao TEXT"
+    ],
+    "HierarquiaAtendimento": [
+        "hierarquiaID TEXT PRIMARY KEY",
+        "classificacao TEXT"
     ]
 }
 
@@ -173,6 +193,28 @@ def init_db():
         create_sql = f"CREATE TABLE IF NOT EXISTS {table_name} (\n    {col_defs}\n);"
         print(f"Criando tabela: {table_name}")
         cursor.execute(create_sql)
+    
+    # --- Migração: Adicionar colunas faltantes na tabela Linha ---
+    cursor.execute("PRAGMA table_info(Linha)")
+    existing_cols = [row[1] for row in cursor.fetchall()]
+    new_cols = {
+        "tipologiaRede": "TEXT",
+        "abrangenciaTerritorial": "TEXT",
+        "geometriaTracado": "TEXT",
+        "hierarquiaAtendimento": "TEXT"
+    }
+    for col, col_type in new_cols.items():
+        if col not in existing_cols:
+            print(f"Migração: Adicionando coluna {col} à tabela Linha")
+            cursor.execute(f"ALTER TABLE Linha ADD COLUMN {col} {col_type}")
+
+    # --- Migração: Adicionar colunas faltantes na tabela LinhaExcluida ---
+    cursor.execute("PRAGMA table_info(LinhaExcluida)")
+    existing_cols_ex = [row[1] for row in cursor.fetchall()]
+    for col, col_type in new_cols.items():
+        if col not in existing_cols_ex:
+            print(f"Migração: Adicionando coluna {col} à tabela LinhaExcluida")
+            cursor.execute(f"ALTER TABLE LinhaExcluida ADD COLUMN {col} {col_type}")
     
     # Inicializar usuários admin se não existirem
     cursor.execute("SELECT COUNT(*) FROM Usuarios")
@@ -217,6 +259,31 @@ def init_db():
         c_data = [('Alimentadora',), ('Inter-Bairro',)]
         for c in c_data:
             cursor.execute("INSERT INTO Caracteristica (caracteristicaID, descricao) VALUES (?, ?)", (str(uuid.uuid4()), c[0]))
+    
+    # Popular novas tabelas
+    cursor.execute("SELECT COUNT(*) FROM TipologiaRede")
+    if cursor.fetchone()[0] == 0:
+        data = ["Dia Útil", "Sábado", "Pontos Facultativos", "Domingo/Feriado", "Noturna"]
+        for d in data:
+            cursor.execute("INSERT INTO TipologiaRede (tipologiaID, descricao) VALUES (?, ?)", (str(uuid.uuid4()), d))
+            
+    cursor.execute("SELECT COUNT(*) FROM AbrangenciaTerritorial")
+    if cursor.fetchone()[0] == 0:
+        data = ["Serviço Local", "Serviço Estrutural"]
+        for d in data:
+            cursor.execute("INSERT INTO AbrangenciaTerritorial (abrangenciaID, descricao) VALUES (?, ?)", (str(uuid.uuid4()), d))
+            
+    cursor.execute("SELECT COUNT(*) FROM GeometriaTracado")
+    if cursor.fetchone()[0] == 0:
+        data = ["Serviço Radial", "Serviço Diametral", "Serviço Perimetral"]
+        for d in data:
+            cursor.execute("INSERT INTO GeometriaTracado (geometriaID, classificacao) VALUES (?, ?)", (str(uuid.uuid4()), d))
+            
+    cursor.execute("SELECT COUNT(*) FROM HierarquiaAtendimento")
+    if cursor.fetchone()[0] == 0:
+        data = ["Distribuidora", "Articuladora", "Alimentadora", "Auxiliar"]
+        for d in data:
+            cursor.execute("INSERT INTO HierarquiaAtendimento (hierarquiaID, classificacao) VALUES (?, ?)", (str(uuid.uuid4()), d))
     
     conn.commit()
     conn.close()

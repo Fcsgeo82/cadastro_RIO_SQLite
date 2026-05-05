@@ -8,6 +8,12 @@ import io
 import pandas as pd
 from datetime import datetime
 import streamlit as st
+import mimetypes
+
+# --- Fix para Windows/Pinggy: Garante que arquivos JS sejam servidos com o MIME type correto ---
+# Sem isso, o browser pode recusar o carregamento de módulos dinâmicos (TypeError)
+mimetypes.add_type('application/javascript', '.js')
+mimetypes.add_type('text/javascript', '.js')
 
 from views import mod_cadastro
 from views import mod_cadastro_ref
