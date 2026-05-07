@@ -1,36 +1,12 @@
 import streamlit as st
 import re
-import os
-import base64
 import pandas as pd
-from models.db import obter_linha_por_id
-from views.mod_cadastro import _carregar_todas_referencias
 import streamlit.components.v1 as components
 import pydeck as pdk
+from models.db import obter_linha_por_id
+from views.mod_cadastro import _carregar_todas_referencias
 from models.gtfs_loader import load_gtfs_data, processar_quadro_horario
-
-
-def _obter_label(dicionario_inverso, chave_busca):
-    if not chave_busca:
-        return "-"
-    
-    # Se for uma lista separada por vírgula (múltiplas seleções)
-    if isinstance(chave_busca, str) and "," in chave_busca:
-        ids = [i.strip() for i in chave_busca.split(",")]
-        labels = []
-        for i in ids:
-            label_encontrado = None
-            for label, id_ in dicionario_inverso.items():
-                if str(id_) == str(i):
-                    label_encontrado = label
-                    break
-            labels.append(label_encontrado if label_encontrado else i)
-        return ", ".join(labels)
-
-    for label, id_ in dicionario_inverso.items():
-        if str(id_) == str(chave_busca):
-            return label
-    return chave_busca
+from utils.ui_components import render_logo, obter_label
 
 def render(linha_id: str):
     if not linha_id:
@@ -52,38 +28,38 @@ def render(linha_id: str):
 
     # --- Mapeamento de Dados ---
     v_linha = dados.get('numeroLinha', '-')
-    v_servico = _obter_label(refs.get('servicos', {}), dados.get('servico'))
+    v_servico = obter_label(refs.get('servicos', {}), dados.get('servico'))
     v_vista = dados.get('vista', '-')
     v_via = dados.get('via') or '-'
-    v_operador = _obter_label(refs.get('operadores', {}), dados.get('operador'))
+    v_operador = obter_label(refs.get('operadores', {}), dados.get('operador'))
     
     v_criacao = dados.get('dataCriacaoLinha') or '-'
     if "-" in v_criacao and len(v_criacao) == 10:
         v_criacao = v_criacao[8:10] + "/" + v_criacao[5:7] + "/" + v_criacao[0:4]
 
-    v_tipo = _obter_label(refs.get('tipos_sistema', {}), dados.get('tipoSistema'))
-    v_area_op = _obter_label(refs.get('areas_op', {}), dados.get('areaOperacional'))
-    v_grupamento = _obter_label(refs.get('grupamentos', {}), dados.get('grupamentoBRS'))
+    v_tipo = obter_label(refs.get('tipos_sistema', {}), dados.get('tipoSistema'))
+    v_area_op = obter_label(refs.get('areas_op', {}), dados.get('areaOperacional'))
+    v_grupamento = obter_label(refs.get('grupamentos', {}), dados.get('grupamentoBRS'))
     
     v_km_ida = str(dados.get('kmIDA')).replace('.',',') if dados.get('kmIDA') else '-'
     v_km_volta = str(dados.get('kmVOLTA')).replace('.',',') if dados.get('kmVOLTA') else '-'
     v_obs = dados.get('observacao') or '-'
 
-    v_tipologia = _obter_label(refs.get('tipologia', {}), dados.get('tipologiaRede'))
-    v_abrangencia = _obter_label(refs.get('abrangencia', {}), dados.get('abrangenciaTerritorial'))
-    v_geometria = _obter_label(refs.get('geometria', {}), dados.get('geometriaTracado'))
-    v_hierarquia = _obter_label(refs.get('hierarquia', {}), dados.get('hierarquiaAtendimento'))
+    v_tipologia = obter_label(refs.get('tipologia', {}), dados.get('tipologiaRede'))
+    v_abrangencia = obter_label(refs.get('abrangencia', {}), dados.get('abrangenciaTerritorial'))
+    v_geometria = obter_label(refs.get('geometria', {}), dados.get('geometriaTracado'))
+    v_hierarquia = obter_label(refs.get('hierarquia', {}), dados.get('hierarquiaAtendimento'))
 
     def _of_html(of_id):
         if not of_id: return "-"
-        lbl = _obter_label(refs.get('oficios', {}), of_id)
+        lbl = obter_label(refs.get('oficios', {}), of_id)
         return lbl
 
     v_oficio_prin = _of_html(dados.get('oficio'))
     v_oficio_ult  = _of_html(dados.get('oficioUltimaAlteracao'))
     
     v_frota_of_html = _of_html(dados.get('frotaUltimoOficio'))
-    v_frota_tipo = _obter_label(refs.get('tipos_veiculo', {}), dados.get('frotaTipoVeiculo'))
+    v_frota_tipo = obter_label(refs.get('tipos_veiculo', {}), dados.get('frotaTipoVeiculo'))
     
     v_frota_data = dados.get('frotaDataOficio') or '-'
     if "-" in v_frota_data and len(v_frota_data) == 10:
@@ -134,13 +110,7 @@ def render(linha_id: str):
         """
 
     # --- Imagem do Logo ---
-    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    logo_svg = os.path.join(root_dir, "logo_rio.svg")
-    logo_img = ""
-    if os.path.exists(logo_svg):
-        with open(logo_svg, "rb") as f:
-            logo_data = base64.b64encode(f.read()).decode()
-        logo_img = f'<img src="data:image/svg+xml;base64,{logo_data}" style="width:140px;height:auto;">'
+    logo_img = render_logo("140px")
 
     # --- HTML DOC ---
     html_doc = f"""
@@ -276,7 +246,7 @@ def render(linha_id: str):
 
     col_back, _ = st.columns([1.5, 8.5])
     with col_back:
-        if st.button("⬅️ Voltar", width='stretch', key="btn_voltar_ficha"):
+        if st.button("⬅️ Voltar", use_container_width=True, key="btn_voltar_ficha"):
             st.session_state["aba_ativa"] = "Principal"
             st.rerun()
 

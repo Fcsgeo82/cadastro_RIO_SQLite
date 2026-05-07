@@ -36,6 +36,7 @@ def listar_tabela(table_name: str) -> pd.DataFrame:
 # LOADERS — tabelas de referência para dropdowns
 # ------------------------------------------------------------------
 
+@st.cache_data(show_spinner=False)
 def carregar_servicos() -> pd.DataFrame:
     df = _query_df(f"""
         SELECT servicoID, Prefixo, descricao
@@ -50,6 +51,7 @@ def carregar_servicos() -> pd.DataFrame:
     return df[["servicoID", "label"]].rename(columns={"servicoID": "id"})
 
 
+@st.cache_data(show_spinner=False)
 def carregar_operadores() -> pd.DataFrame:
     df = _query_df(f"""
         SELECT operadorID, nomeFantasia
@@ -61,6 +63,7 @@ def carregar_operadores() -> pd.DataFrame:
     return df.rename(columns={"operadorID": "id", "nomeFantasia": "label"})
 
 
+@st.cache_data(show_spinner=False)
 def carregar_areas_operacionais() -> pd.DataFrame:
     df = _query_df(f"""
         SELECT areaOperacionalID, codigo, corReferencia
@@ -79,6 +82,7 @@ def carregar_areas_operacionais() -> pd.DataFrame:
     return df[['areaOperacionalID', 'label']].rename(columns={"areaOperacionalID": "id"})
 
 
+@st.cache_data(show_spinner=False)
 def carregar_parametros_novos() -> pd.DataFrame:
     df = _query_df(f"""
         SELECT parametroID, descricao
@@ -90,6 +94,7 @@ def carregar_parametros_novos() -> pd.DataFrame:
     return df.rename(columns={"parametroID": "id", "descricao": "label"})
 
 
+@st.cache_data(show_spinner=False)
 def carregar_caracteristicas() -> pd.DataFrame:
     df = _query_df(f"""
         SELECT caracteristicaID, descricao
@@ -101,6 +106,7 @@ def carregar_caracteristicas() -> pd.DataFrame:
     return df.rename(columns={"caracteristicaID": "id", "descricao": "label"})
 
 
+@st.cache_data(show_spinner=False)
 def carregar_tipos_sistema() -> pd.DataFrame:
     df = _query_df(f"""
         SELECT tipoSistemaID, descricao
@@ -112,6 +118,7 @@ def carregar_tipos_sistema() -> pd.DataFrame:
     return df.rename(columns={"tipoSistemaID": "id", "descricao": "label"})
 
 
+@st.cache_data(show_spinner=False)
 def carregar_tipos_veiculo() -> pd.DataFrame:
     df = _query_df(f"""
         SELECT tipoVeiculoID, descricao
@@ -126,6 +133,7 @@ def carregar_tipos_veiculo() -> pd.DataFrame:
 # Deprecated: carregar_parametros e carregar_areas_geograficas removidos.
 
 
+@st.cache_data(show_spinner=False)
 def carregar_grupamentos() -> pd.DataFrame:
     df = _query_df(f"""
         SELECT grupamentoBRSID, CAST(descricao AS TEXT) AS descricao
@@ -137,6 +145,7 @@ def carregar_grupamentos() -> pd.DataFrame:
     return df.rename(columns={"grupamentoBRSID": "id", "descricao": "label"})
 
 
+@st.cache_data(show_spinner=False)
 def carregar_tipologia_rede() -> pd.DataFrame:
     df = _query_df(f"""
         SELECT tipologiaID, descricao
@@ -148,6 +157,7 @@ def carregar_tipologia_rede() -> pd.DataFrame:
     return df.rename(columns={"tipologiaID": "id", "descricao": "label"})
 
 
+@st.cache_data(show_spinner=False)
 def carregar_abrangencia_territorial() -> pd.DataFrame:
     df = _query_df(f"""
         SELECT abrangenciaID, descricao
@@ -159,6 +169,7 @@ def carregar_abrangencia_territorial() -> pd.DataFrame:
     return df.rename(columns={"abrangenciaID": "id", "descricao": "label"})
 
 
+@st.cache_data(show_spinner=False)
 def carregar_geometria_tracado() -> pd.DataFrame:
     df = _query_df(f"""
         SELECT geometriaID, classificacao
@@ -170,6 +181,7 @@ def carregar_geometria_tracado() -> pd.DataFrame:
     return df.rename(columns={"geometriaID": "id", "classificacao": "label"})
 
 
+@st.cache_data(show_spinner=False)
 def carregar_hierarquia_atendimento() -> pd.DataFrame:
     df = _query_df(f"""
         SELECT hierarquiaID, classificacao
@@ -181,6 +193,7 @@ def carregar_hierarquia_atendimento() -> pd.DataFrame:
     return df.rename(columns={"hierarquiaID": "id", "classificacao": "label"})
 
 
+@st.cache_data(show_spinner=False)
 def carregar_oficios() -> pd.DataFrame:
     df = _query_df("""
         SELECT oficioID, numeroOficio, dataOficio
@@ -197,6 +210,8 @@ def carregar_oficios() -> pd.DataFrame:
     
     return df[['oficioID', 'label', 'dataOficio']].rename(columns={"oficioID": "id"})
 
+
+@st.cache_data(show_spinner=False)
 def carregar_assuntos_oficios() -> dict:
     """Retorna um dicionário mapeando oficioID -> assunto."""
     df = _query_df("SELECT oficioID, assunto FROM Oficio")
@@ -416,9 +431,9 @@ def consultar_linhas(
     # Formatação de data no pandas para simular o comportamento original
     try:
         if 'Data Criação' in df.columns:
-            df['Data Criação'] = pd.to_datetime(df['Data Criação']).dt.strftime('%d/%m/%Y')
+            df['Data Criação'] = pd.to_datetime(df['Data Criação'], errors='coerce').dt.strftime('%d/%m/%Y')
         if 'Cadastrado em' in df.columns:
-            df['Cadastrado em'] = pd.to_datetime(df['Cadastrado em']).dt.strftime('%d/%m/%Y %H:%M')
+            df['Cadastrado em'] = pd.to_datetime(df['Cadastrado em'], errors='coerce').dt.strftime('%d/%m/%Y %H:%M')
     except:
         pass
 
@@ -700,7 +715,7 @@ def consultar_historico(
         return df
     
     try:
-        df['Data'] = pd.to_datetime(df['Data']).dt.strftime('%d/%m/%Y %H:%M')
+        df['Data'] = pd.to_datetime(df['Data'], errors='coerce').dt.strftime('%d/%m/%Y %H:%M')
     except:
         pass
     

@@ -51,7 +51,7 @@ def _form_parametro():
     with st.form("form_parametro", clear_on_submit=True):
         descricao = st.text_input("Descrição *", placeholder="Ex: Polarizada")
         submitted = st.form_submit_button("💾 Salvar", type="primary",
-                                          width='stretch')
+                                          use_container_width=True)
 
     if submitted:
         if not descricao.strip():
@@ -69,7 +69,7 @@ def _form_caracteristica():
     with st.form("form_caracteristica", clear_on_submit=True):
         descricao = st.text_input("Descrição *", placeholder="Ex: Alimentadora")
         submitted = st.form_submit_button("💾 Salvar", type="primary",
-                                          width='stretch')
+                                          use_container_width=True)
 
     if submitted:
         if not descricao.strip():
@@ -92,7 +92,7 @@ def _form_area_operacional():
         with col2:
             cor       = st.text_input("Cor de Referência", placeholder="Ex: #FF5733 ou Vermelho")
         submitted = st.form_submit_button("💾 Salvar", type="primary",
-                                          width='stretch')
+                                          use_container_width=True)
 
     if submitted:
         if not descricao.strip():
@@ -113,7 +113,7 @@ def _form_grupamento_brs():
         descricao = st.number_input("Descrição (número) *", min_value=0, value=None,
                                     placeholder="Ex: 101")
         submitted = st.form_submit_button("💾 Salvar", type="primary",
-                                          width='stretch')
+                                          use_container_width=True)
 
     if submitted:
         if descricao is None:
@@ -142,7 +142,7 @@ def _form_oficio():
         with col4:
             linha_rel = st.text_input("Linha Relacionada (ID)", placeholder="UUID da linha")
         submitted = st.form_submit_button("💾 Salvar", type="primary",
-                                          width='stretch')
+                                          use_container_width=True)
 
     if submitted:
         faltando = []
@@ -177,7 +177,7 @@ def _form_servico():
         with col2:
             descricao = st.text_input("Descrição *", placeholder="Ex: Bus Rapid Transit")
         submitted = st.form_submit_button("💾 Salvar", type="primary",
-                                          width='stretch')
+                                          use_container_width=True)
 
     if submitted:
         faltando = []
@@ -204,7 +204,7 @@ def _form_tipo_sistema():
             sentido   = st.number_input("Sentido", min_value=1, max_value=2, value=None,
                                         placeholder="1 ou 2")
         submitted = st.form_submit_button("💾 Salvar", type="primary",
-                                          width='stretch')
+                                          use_container_width=True)
 
     if submitted:
         if not descricao.strip():
@@ -227,7 +227,7 @@ def _form_tipo_veiculo():
         with col2:
             codigo    = st.number_input("Código do Veículo", min_value=1, value=None)
         submitted = st.form_submit_button("💾 Salvar", type="primary",
-                                          width='stretch')
+                                          use_container_width=True)
 
     if submitted:
         if not descricao.strip():
@@ -258,7 +258,7 @@ def _form_operador():
 
         termo = st.text_input("Termo / Contrato", placeholder="Ex: Contrato 001/2020")
         submitted = st.form_submit_button("💾 Salvar", type="primary",
-                                          width='stretch')
+                                          use_container_width=True)
 
     if submitted:
         faltando = []
@@ -290,7 +290,7 @@ def _form_tipologia_rede():
     st.markdown("**Campos:** Descrição da tipologia de rede.")
     with st.form("form_tipologia", clear_on_submit=True):
         descricao = st.text_input("Descrição *", placeholder="Ex: Dia Útil")
-        submitted = st.form_submit_button("💾 Salvar", type="primary", width='stretch')
+        submitted = st.form_submit_button("💾 Salvar", type="primary", use_container_width=True)
 
     if submitted:
         if not descricao.strip():
@@ -307,7 +307,7 @@ def _form_abrangencia_territorial():
     st.markdown("**Campos:** Descrição da abrangência territorial.")
     with st.form("form_abrangencia", clear_on_submit=True):
         descricao = st.text_input("Descrição *", placeholder="Ex: Serviço Local")
-        submitted = st.form_submit_button("💾 Salvar", type="primary", width='stretch')
+        submitted = st.form_submit_button("💾 Salvar", type="primary", use_container_width=True)
 
     if submitted:
         if not descricao.strip():
@@ -324,7 +324,7 @@ def _form_geometria_tracado():
     st.markdown("**Campos:** Classificação da geometria do traçado.")
     with st.form("form_geometria", clear_on_submit=True):
         classificacao = st.text_input("Classificação *", placeholder="Ex: Serviço Radial")
-        submitted = st.form_submit_button("💾 Salvar", type="primary", width='stretch')
+        submitted = st.form_submit_button("💾 Salvar", type="primary", use_container_width=True)
 
     if submitted:
         if not classificacao.strip():
@@ -341,7 +341,7 @@ def _form_hierarquia_atendimento():
     st.markdown("**Campos:** Classificação da hierarquia de atendimento.")
     with st.form("form_hierarquia", clear_on_submit=True):
         classificacao = st.text_input("Classificação *", placeholder="Ex: Distribuidora")
-        submitted = st.form_submit_button("💾 Salvar", type="primary", width='stretch')
+        submitted = st.form_submit_button("💾 Salvar", type="primary", use_container_width=True)
 
     if submitted:
         if not classificacao.strip():
@@ -458,4 +458,4 @@ def render():
     if df_lista.empty:
         st.info("Nenhum registro encontrado nesta tabela.")
     else:
-        st.dataframe(df_lista, width='stretch', hide_index=True)
+        st.dataframe(df_lista, use_container_width=True, hide_index=True)

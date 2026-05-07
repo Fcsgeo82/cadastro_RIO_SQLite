@@ -3,6 +3,7 @@ import datetime
 import pandas as pd
 from models.db import obter_linha_por_id, atualizar_linha
 from views.mod_cadastro import _carregar_todas_referencias
+from utils.ui_components import obter_label
 
 def _get_index(dict_opcoes: dict, valor_id: str) -> int:
     """Retorna o índice da opção salva para usar no st.selectbox(index=...)."""
@@ -13,12 +14,6 @@ def _get_index(dict_opcoes: dict, valor_id: str) -> int:
         if str(v) == str(valor_id):
             return i + 1 # +1 por causa do '— selecione —'
     return 0
-
-def _obter_label(dicionario_inverso, chave_busca):
-    if not chave_busca: return None
-    for label, id_ in dicionario_inverso.items():
-        if str(id_) == str(chave_busca): return label
-    return None
 
 def _selectbox(label: str, opcoes_dict: dict, valor_db: str, obrigatorio: bool = False, disabled: bool = False):
     sufixo  = " *" if obrigatorio else ""
@@ -80,7 +75,7 @@ def render(linha_id: str):
     # Cabeçalho da edição
     col_back, _ = st.columns([1, 8])
     with col_back:
-        if st.button("⬅️ Voltar / Cancelar", width='stretch'):
+        if st.button("⬅️ Voltar / Cancelar", use_container_width=True):
             st.session_state["aba_ativa"] = "Principal"
             st.rerun()
 
@@ -168,13 +163,13 @@ def render(linha_id: str):
         col15, col16 = st.columns(2)
         with col15:
             # Primeiro histórico não pode ser alterado
-            st.text_input("Ofício — Primeiro Histórico", value=_obter_label(refs.get("oficios", {}), dados_bd.get("oficioprimeiroHistorico")) or "-", disabled=True)
+            st.text_input("Ofício — Primeiro Histórico", value=obter_label(refs.get("oficios", {}), dados_bd.get("oficioprimeiroHistorico")), disabled=True)
             oficio_prim_hist_id = dados_bd.get("oficioprimeiroHistorico")
             if oficio_prim_hist_id:
                 st.caption(f"**Assunto:** {refs.get('assuntos_oficios', {}).get(oficio_prim_hist_id, 'Sem assunto')}")
         with col16:
             # Mostra o status atual
-            st.text_input("Ofício — Última Alteração (Automático)", value=_obter_label(refs.get("oficios", {}), dados_bd.get("oficioUltimaAlteracao")) or "-", disabled=True)
+            st.text_input("Ofício — Última Alteração (Automático)", value=obter_label(refs.get("oficios", {}), dados_bd.get("oficioUltimaAlteracao")), disabled=True)
             oficio_ult_alt_id = dados_bd.get("oficioUltimaAlteracao")
             if oficio_ult_alt_id:
                  st.caption(f"**Assunto:** {refs.get('assuntos_oficios', {}).get(oficio_ult_alt_id, 'Sem assunto')}")
@@ -247,12 +242,12 @@ def render(linha_id: str):
             st.write("") # Espaçador
             df_a3_volta = _itinerario_editor_edicao("Volta", "edit_a3_volta", _load_itinerario_df(it_lista, "A3", "1"))
 
-        # ── Observação ───────────────────────────────────────────
-        st.divider()
-        observacao = st.text_area("📝 Observação Geral", height=80, value=dados_bd.get("observacao") or "")
+    # ── Observação ───────────────────────────────────────────
+    st.divider()
+    observacao = st.text_area("📝 Observação Geral", height=80, value=dados_bd.get("observacao") or "")
 
-        # ── Submit ───────────────────────────────────────────────
-        submitted = st.form_submit_button("💾 Salvar Alterações", width='stretch', type="primary")
+    # ── Submit ───────────────────────────────────────────────
+    submitted = st.form_submit_button("💾 Salvar Alterações", use_container_width=True, type="primary")
 
     if submitted:
         # Campos obrigatórios - usar valores do BD para campos disabled
@@ -269,10 +264,6 @@ def render(linha_id: str):
             return
 
         # ---- LÓGICA DE ÚLTIMA ALTERAÇÃO AUTOMÁTICA ----
-        # Se os ofícios atuais do form forem diferentes do BD E não forem vazios.
-        # Os ofícios da referência já estão ordenados por data descrescente e número descrescente (graças a query do db.py)
-        # Então, se tivermos vários ofícios novos, pegamos o primeiro que aparecer nos values de refs["oficios"]
-        
         oficios_alterados = []
         
         if frota_ultimo_oficio_id and str(frota_ultimo_oficio_id) != str(dados_bd.get("frotaUltimoOficio") or ""):
@@ -305,8 +296,6 @@ def render(linha_id: str):
                 oficio_ult_alt_id = oficio_mais_recente_id
 
         # Resolvendo Grupamento para passar pro DB (pode ser o label ou ID dependendo do salvamento)
-        # mod_cadastro passava o dict. DB espera o ID do grupamento (int) convertido.
-        
         dados = {
             "numeroLinha":              numeroLinha,
             "dataCriacaoLinha":         dataCriacaoLinha,

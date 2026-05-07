@@ -2,15 +2,7 @@ import streamlit as st
 import datetime
 from models.db import obter_linha_por_id, obter_oficios_itinerarios
 from views.mod_cadastro import _carregar_todas_referencias
-
-def _obter_label(dicionario_inverso, chave_busca):
-    """Encontra a label de um ID pesquisando num dicionário {Label: ID}."""
-    if not chave_busca:
-        return "-"
-    for label, id_ in dicionario_inverso.items():
-        if str(id_) == str(chave_busca):
-            return label
-    return chave_busca
+from utils.ui_components import obter_label
 
 def parse_date(date_str):
     if not date_str:
@@ -60,7 +52,7 @@ def render(linha_id: str):
     # --- Header ---
     col_back, _ = st.columns([1, 8])
     with col_back:
-        if st.button("⬅️ Voltar", width='stretch'):
+        if st.button("⬅️ Voltar", use_container_width=True):
             st.session_state["aba_ativa"] = "Principal"
             st.rerun()
             
@@ -123,7 +115,7 @@ def render(linha_id: str):
         label_ofn = "<Não informado>"
         assunto_label = "N/A"
         if ev['oficio']:
-             label_ofn = _obter_label(refs['oficios'], ev['oficio'])
+             label_ofn = obter_label(refs['oficios'], ev['oficio'])
              assunto_label = refs.get('assuntos_oficios', {}).get(ev['oficio'], "Sem assunto registrado")
              
         data_formatada = ev['date_obj'].strftime('%d/%m/%Y')
