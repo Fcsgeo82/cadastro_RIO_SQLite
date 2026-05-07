@@ -52,7 +52,7 @@ def render(linha_id: str):
     # --- Header ---
     col_back, _ = st.columns([1, 8])
     with col_back:
-        if st.button("⬅️ Voltar", use_container_width=True):
+        if st.button("⬅️ Voltar", width='stretch'):
             st.session_state["aba_ativa"] = "Principal"
             st.rerun()
             

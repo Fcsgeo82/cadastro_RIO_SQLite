@@ -120,9 +120,9 @@ if not st.session_state.get('logged_in'):
             password = st.text_input("Senha", type="password")
             col_btn1, col_btn2 = st.columns([1,1])
             with col_btn1:
-                submitted = st.form_submit_button("Entrar", type="primary", use_container_width=True)
+                submitted = st.form_submit_button("Entrar", type="primary", width='stretch')
             with col_btn2:
-                public_access = st.form_submit_button("Acesso Público", type="secondary", use_container_width=True)
+                public_access = st.form_submit_button("Acesso Público", type="secondary", width='stretch')
                 
             if submitted:
                 user = db.verify_login(username, password)
@@ -142,7 +142,7 @@ if not st.session_state.get('logged_in'):
     
     with tab_forgot:
         username_forgot = st.text_input("Usuário", key="forgot_user")
-        if st.button("Enviar Link de Reset", type="secondary", use_container_width=True):
+        if st.button("Enviar Link de Reset", type="secondary", width='stretch'):
             success, result = db.generate_reset_token(username_forgot)
             if success:
                 email = db.get_user_email(username_forgot)
@@ -300,10 +300,10 @@ aba = st.session_state.get("aba_ativa", "Principal")
 if aba == "Principal":
     # --- Abas principais ---
     tab_configs = [
-        {"label": "🔍  Consultar Linhas", "render": mod_consulta.render, "roles": ["admin", "editor", "user"]},
+        {"label": "🔍  Consultar Linhas", "render": mod_consulta.render, "roles": ["admin", "editor", "user", "visualizador"]},
         {"label": "➕  Cadastrar Linha", "render": mod_cadastro.render, "roles": ["admin", "editor"]},
         {"label": "📜  Histórico de Linhas", "render": None, "roles": ["admin", "editor"]}, # Custom render below
-        {"label": "🗂️  Tabelas de Referência", "render": mod_cadastro_ref.render, "roles": ["admin", "editor"]},
+        {"label": "🗂️  Tabelas de Referência", "render": mod_cadastro_ref.render, "roles": ["admin", "editor", "visualizador"]},
         {"label": "📦  GTFS", "render": mod_gtfs.render, "roles": ["admin", "editor"]},
         {"label": "👥  Usuários", "render": mod_usuarios.render, "roles": ["admin"]},
     ]
@@ -332,7 +332,7 @@ if aba == "Principal":
                 with col2:
                     filtro_num = st.text_input("Buscar linha", placeholder="Ex: 474", key="filtro_num_historico")
                 with col3:
-                    if st.button("🔍 Buscar", type="primary", use_container_width=True, key="buscar_historico"):
+                    if st.button("🔍 Buscar", type="primary", width='stretch', key="buscar_historico"):
                         df_hist = consultar_historico(numero=filtro_num)
                         st.session_state["resultado_historico"] = df_hist
                 
@@ -353,7 +353,7 @@ if aba == "Principal":
                     cols_visiveis = [c for c in df_exibir.columns if c not in ("linhaID", "status")]
                     evento = st.dataframe(
                         df_exibir[cols_visiveis],
-                        use_container_width=True,
+                        width='stretch',
                         hide_index=True,
                         on_select="rerun",
                         selection_mode="single-row",
@@ -366,7 +366,7 @@ if aba == "Principal":
                         status_sel = linha_selecionada.get("status", "ativa")
                         
                         st.markdown("---")
-                        if st.button("👁️ Ver Ficha", use_container_width=True, key="ver_ficha_historico"):
+                        if st.button("👁️ Ver Ficha", width='stretch', key="ver_ficha_historico"):
                             st.session_state["linha_acao_id"] = linha_id_sel
                             st.session_state["aba_ativa"] = "FichaExcluida" if status_sel == "excluida" else "Ficha"
                             st.rerun()
@@ -515,7 +515,7 @@ elif aba == "Excluir":
     
     col_yes, col_no = st.columns(2)
     with col_yes:
-        if st.button("✅ Confirmar Exclusão", type="primary", use_container_width=True, disabled=(oficio_selecionado == "Selecione..."), key="confirmar_exclusao"):
+        if st.button("✅ Confirmar Exclusão", type="primary", width='stretch', disabled=(oficio_selecionado == "Selecione..."), key="confirmar_exclusao"):
             oficio_id = opcoes(oficios).get(oficio_selecionado)
             sucesso, msg = excluir_linha(linha_id, oficio_id)
             if sucesso:
@@ -527,7 +527,7 @@ elif aba == "Excluir":
             st.session_state["aba_ativa"] = "Principal"
             st.rerun()
     with col_no:
-        if st.button("❌ Cancelar", use_container_width=True):
+        if st.button("❌ Cancelar", width='stretch'):
             st.session_state["aba_ativa"] = "Principal"
             st.rerun()
 

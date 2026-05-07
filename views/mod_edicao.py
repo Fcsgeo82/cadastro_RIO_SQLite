@@ -45,7 +45,7 @@ def _itinerario_editor_edicao(titulo: str, key: str, df_dados):
     return st.data_editor(
         df_dados,
         num_rows="dynamic",
-        use_container_width=True,
+        width='stretch',
         key=key,
         column_config={
             "Logradouro": st.column_config.TextColumn("Logradouro", width="large", required=True),
@@ -75,7 +75,7 @@ def render(linha_id: str):
     # Cabeçalho da edição
     col_back, _ = st.columns([1, 8])
     with col_back:
-        if st.button("⬅️ Voltar / Cancelar", use_container_width=True):
+        if st.button("⬅️ Voltar / Cancelar", width='stretch'):
             st.session_state["aba_ativa"] = "Principal"
             st.rerun()
 
@@ -122,15 +122,7 @@ def render(linha_id: str):
 
         col11, col12 = st.columns(2)
         with col11:
-            # Pega os IDs salvos e separa por vírgula
-            ids_salvos = (dados_bd.get("tipologiaRede") or "").split(",") if dados_bd.get("tipologiaRede") else []
-            # Converte IDs em rótulos para o multiselect (pre-seleção)
-            opcoes_tipologia = list(refs.get("tipologia", {}).keys())
-            mapa_id_label = {str(v): k for k, v in refs.get("tipologia", {}).items()}
-            default_labels = [mapa_id_label[i] for i in ids_salvos if i in mapa_id_label]
-            
-            tipologia_selecionadas = st.multiselect("Tipologia de Rede", options=opcoes_tipologia, default=default_labels)
-            tipologia_id = ",".join([str(refs["tipologia"][sel]) for sel in tipologia_selecionadas]) if tipologia_selecionadas else None
+            tipologia_id = _selectbox("Tipologia de Rede", refs.get("tipologia", {}), dados_bd.get("tipologiaRede"))
         with col12:
             abrangencia_id   = _selectbox("Abrangência Territorial", refs.get("abrangencia", {}), dados_bd.get("abrangenciaTerritorial"))
         
@@ -247,7 +239,7 @@ def render(linha_id: str):
     observacao = st.text_area("📝 Observação Geral", height=80, value=dados_bd.get("observacao") or "")
 
     # ── Submit ───────────────────────────────────────────────
-    submitted = st.form_submit_button("💾 Salvar Alterações", use_container_width=True, type="primary")
+    submitted = st.form_submit_button("💾 Salvar Alterações", width='stretch', type="primary")
 
     if submitted:
         # Campos obrigatórios - usar valores do BD para campos disabled

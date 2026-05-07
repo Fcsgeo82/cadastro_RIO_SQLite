@@ -55,7 +55,7 @@ def _itinerario_editor(titulo: str, key: str):
     return st.data_editor(
         df_init,
         num_rows="dynamic",
-        use_container_width=True,
+        width='stretch',
         key=key,
         column_config={
             "Logradouro": st.column_config.TextColumn("Logradouro", width="large", required=True),
@@ -127,9 +127,7 @@ def render():
 
         col11, col12 = st.columns(2)
         with col11:
-            tipologia_selecionadas = st.multiselect("Tipologia de Rede", options=list(refs["tipologia"].keys()))
-            # Mapeia rótulos para IDs e junta com vírgula
-            tipologia_id = ",".join([str(refs["tipologia"][sel]) for sel in tipologia_selecionadas]) if tipologia_selecionadas else None
+            tipologia_id = _selectbox("Tipologia de Rede", refs["tipologia"])
         with col12:
             abrangencia_id   = _selectbox("Abrangência Territorial", refs["abrangencia"])
         
@@ -221,7 +219,7 @@ def render():
         # ── Submit ───────────────────────────────────────────────
         submitted = st.form_submit_button(
             "💾 Salvar Linha",
-            use_container_width=True,
+            width='stretch',
             type="primary"
         )
 

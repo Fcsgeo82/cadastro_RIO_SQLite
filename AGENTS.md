@@ -28,7 +28,8 @@ streamlit run app.py
 |----------|----------|------|
 | admin | admin123 | Full access |
 | editor | editor123 | Consult, Cadastro, Tabelas Ref, Linhas Excluídas |
-| user | user123 | Consult only |
+| visualizador | vis123 | Consult only (with all filters) |
+| user | user123 | Consult only (restricted filters) |
 
 ## Database
 

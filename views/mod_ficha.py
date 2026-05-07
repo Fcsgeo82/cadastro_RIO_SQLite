@@ -246,7 +246,7 @@ def render(linha_id: str):
 
     col_back, _ = st.columns([1.5, 8.5])
     with col_back:
-        if st.button("⬅️ Voltar", use_container_width=True, key="btn_voltar_ficha"):
+        if st.button("⬅️ Voltar", width='stretch', key="btn_voltar_ficha"):
             st.session_state["aba_ativa"] = "Principal"
             st.rerun()
 
@@ -308,13 +308,13 @@ def render(linha_id: str):
                         ida_df = df_dia[df_dia['direction_id'] == 0].copy()
                         if not ida_df.empty:
                             ida_df['Horário'] = ida_df['departure_time'].str[:5]
-                            st.dataframe(ida_df[['Horário']].reset_index(drop=True), use_container_width=True, height=300)
+                            st.dataframe(ida_df[['Horário']].reset_index(drop=True), width='stretch', height=300)
                     with col_volta:
                         st.markdown(f"**⬅️ {sentidos.get(1, 'Volta')}**")
                         volta_df = df_dia[df_dia['direction_id'] == 1].copy()
                         if not volta_df.empty:
                             volta_df['Horário'] = volta_df['departure_time'].str[:5]
-                            st.dataframe(volta_df[['Horário']].reset_index(drop=True), use_container_width=True, height=300)
+                            st.dataframe(volta_df[['Horário']].reset_index(drop=True), width='stretch', height=300)
             else: st.warning("Nenhum quadro horário encontrado.")
 
         with tab_stops:
@@ -329,5 +329,5 @@ def render(linha_id: str):
                         if not df_s.empty:
                             trip_exemplo = df_s.groupby('trip_id')['stop_sequence'].count().idxmax()
                             pontos = df_s[df_s['trip_id'] == trip_exemplo].sort_values('stop_sequence')
-                            st.dataframe(pontos[['stop_sequence', 'stop_name']].rename(columns={'stop_sequence': 'Seq', 'stop_name': 'Ponto de Parada'}), use_container_width=True, hide_index=True, height=450)
+                            st.dataframe(pontos[['stop_sequence', 'stop_name']].rename(columns={'stop_sequence': 'Seq', 'stop_name': 'Ponto de Parada'}), width='stretch', hide_index=True, height=450)
     else: st.info("ℹ️ Nenhum dado de GTFS encontrado.")
