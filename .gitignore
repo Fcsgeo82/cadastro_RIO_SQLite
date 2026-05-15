@@ -35,3 +35,5 @@ logo_rio.svg
 iniciar_sistema.bat
 populate_initial_logs.py
 init_db_dados_faker.py
+AGENTS.md
+CAPABILITIES_AND_AGENTS.md

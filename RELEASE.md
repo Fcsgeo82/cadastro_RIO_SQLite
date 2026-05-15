@@ -13,7 +13,7 @@ Este é um sistema de **cadastro e consulta de linhas de ônibus** desenvolvido 
 - Informações de frota (tipo de veículo, ofícios relacionados)
 - Itinerários (pontos de parada, logradouros, bairros)
 - Histórico de alterações
-- **Registro de linhas excluídas com ficha completa**
+- **📜 Histórico de Linhas** (Criação, Alteração e Exclusão com ficha completa)
 
 ### Principais Funcionalidades
 
@@ -23,11 +23,9 @@ Este é um sistema de **cadastro e consulta de linhas de ônibus** desenvolvido 
 
 ✅ **Edição de Linhas** - Alteração de dados existentes (editor/admin)
 
-✅ **Histórico de Alterações** - Registro de todas as modificações feitas em cada linha
+✅ **Histórico de Alterações** - Registro de todas as modificações feitas em cada linha (Criação, Alteração, Exclusão)
 
-✅ **Exclusão com Registro** - Linhas excluídas são movidas para tabela histórica com ofício obrigatório
-
-✅ **Linhas Excluídas** - Nova aba para consulta de linhas removidas com ficha detalhada (editor/admin)
+✅ **📜 Histórico de Linhas** - Aba dedicada para consulta de eventos e fichas de linhas removidas (editor/admin)
 
 ✅ **Fichas Detalhadas** - Visualização completa de cada linha com todos os dados
 
@@ -71,25 +69,28 @@ Este é um sistema de **cadastro e consulta de linhas de ônibus** desenvolvido 
 
 ## 4. Níveis de Acesso
 
-O sistema possui três níveis de acesso:
+O sistema possui quatro níveis de acesso:
 
 ### 👤 Usuário (user)
-- Consultar linhas ativas
+- Consultar linhas ativas (filtros restritos)
 - Visualizar fichas
-- Ver histórico
+
+### 👁️ Visualizador (visualizador)
+- Consultar linhas ativas (todos os filtros)
+- Visualizar fichas
+- Consultar tabelas de referência
 
 ### ✏️ Editor
-- Tudo do usuário +
+- Tudo do visualizador +
 - Cadastrar novas linhas
 - Editar linhas existentes
-- Tabelas de referência
-- **Consultar linhas excluídas e suas fichas**
+- **Consultar histórico completo e fichas excluídas**
 
 ### 👑 Administrador (admin)
 - Tudo do editor +
 - Gerenciar usuários
 - Excluir linhas
-- **Consultar linhas excluídas e suas fichas**
+- Módulo GTFS
 
 ---
 
@@ -137,12 +138,13 @@ python -m streamlit run app.py  #Caso o streamlit não esteja no path.
 
 ## 6. Credenciais Padrão
 
-O sistema cria automaticamente três usuários:
+O sistema cria automaticamente quatro usuários:
 
 | Usuário | Senha | Função |
 |---------|-------|--------|
 | admin | admin123 | Administrador |
 | editor | editor123 | Editor |
+| visualizador | vis123 | Visualizador |
 | user | user123 | Usuário |
 
 ⚠️ **Recomendação**: Altere as senhas padrão após o primeiro acesso!
@@ -193,13 +195,12 @@ Ao abrir o sistema, você verá a tela de login com header amarelo e logo. Insir
 
 ⚠️ A linha não é deletada definitivamente! Ela é movida para a tabela `LinhaExcluida` com registro da data, usuário e ofício de exclusão.
 
-### 7.5 Linhas Excluídas (Editor/Admin)
+### 7.5 📜 Histórico de Linhas (Editor/Admin)
 
-1. Acesse a aba "Linhas Excluídas"
-2. Visualize todas as linhas excluídas
-3. Selecione uma linha para ver sua ficha completa
-4. Os dados incluem:
-   - Todos os dados da linha no momento da exclusão
+1. Acesse a aba "📜 Histórico de Linhas"
+2. Visualize todos os eventos de criação, alteração e exclusão
+3. Selecione uma linha para ver sua ficha completa (ou ficha excluída se for o caso)
+4. Os dados de exclusão incluem:
    - Ofício de exclusão
    - Data e hora da exclusão
    - Usuário que realizou a exclusão
@@ -212,26 +213,26 @@ Ao abrir o sistema, você verá a tela de login com header amarelo e logo. Insir
 cadastro_RIO_SQLite/
 ├── app.py                      # Arquivo principal (Entry Point)
 ├── models/                     # Model - Dados e lógica de banco
-│   ├── __init__.py
 │   ├── db.py                   # Operações SQLite (CRUD + Auth)
-│   └── config.py              # Configuração de conexão
+│   └── config.py               # Configuração de conexão
 ├── views/                      # View - Interface Streamlit
-│   ├── __init__.py
 │   ├── mod_consulta.py         # Consulta de linhas
-│   ├── mod_cadastro.py        # Cadastro de linhas
-│   ├── mod_edicao.py          # Edição de linhas
-│   ├── mod_ficha.py           # Ficha detalhada
-│   ├── mod_historico.py       # Histórico
-│   ├── mod_usuarios.py        # Gestão de usuários
-│   └── mod_cadastro_ref.py    # Tabelas de referência
+│   ├── mod_cadastro.py         # Cadastro de linhas
+│   ├── mod_edicao.py           # Edição de linhas
+│   ├── mod_ficha.py            # Ficha detalhada
+│   ├── mod_historico.py        # Histórico de alterações
+│   ├── mod_usuarios.py         # Gestão de usuários
+│   ├── mod_cadastro_ref.py     # Tabelas de referência
+│   └── mod_gtfs.py             # Módulo GTFS
 ├── utils/                      # Utilitários
-│   ├── init_db.py             # Inicialização do banco
-│   └── init_db_dados_fake.py # Dados de teste
+│   ├── init_db.py              # Inicialização do banco
+│   ├── init_db_dados_fake.py   # Dados de teste
+│   ├── populate_initial_logs.py # Backfill de histórico
+│   └── ui_components.py        # Componentes UI
 ├── database_RIO.db           # Banco SQLite
 ├── requirements.txt           # Dependências
 ├── RELEASE.md                 # Este arquivo
 ├── LICENSE                    # CC BY 4.0
-├── iniciar_sistema.bat       # Script iniciar (Windows)
 └── README.md                  # Documentação
 ```
 
@@ -240,7 +241,7 @@ cadastro_RIO_SQLite/
 ## 9. Novidades na v1.1
 
 - 🔄 **Refatoração MVC** - Projeto reorganizado em models, views e utils
-- 🗑️ **Linhas Excluídas** - Nova funcionalidade de consulta e visualização de linhas removidas
+- 📜 **Histórico de Linhas** - Nova funcionalidade de consulta e visualização de eventos e linhas removidas
 - 📄 **Exclusão com Ofício** - Campo obrigatório de ofício para rastrear motivo da exclusão
 - 🔧 **Correções** - Caminhos de arquivos corrigidos, imports atualizados
 

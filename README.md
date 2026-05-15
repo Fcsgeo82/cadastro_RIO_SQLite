@@ -20,11 +20,16 @@ Aplicação Streamlit para cadastro e consulta de linhas de ônibus utilizando b
    pip install -r requirements.txt
    ```
 
-3. **Inicializar o Banco de Dados:**
-   Este passo cria as tabelas e popula com dados iniciais (Serviços, Operadores, Áreas, etc).
-   ```bash
-   python utils/init_db.py
-   ```
+### Inicializar o Banco de Dados
+Este passo cria as tabelas e popula com dados iniciais (Serviços, Operadores, Áreas, etc).
+```bash
+python utils/init_db.py
+```
+
+*(Opcional)* Se o banco já possui dados e você acabou de adicionar a funcionalidade de logs:
+```bash
+python utils/populate_initial_logs.py
+```
 
 ### Executar a Aplicação
 
@@ -38,13 +43,14 @@ Acesse em: http://localhost:8501
 
 ## 🔐 Login e Autenticação
 
-O sistema possui 3 tipos de usuários com permissões diferentes:
+O sistema possui 4 tipos de usuários com permissões diferentes:
 
 | Usuário | Senha | Permissões |
 |---------|-------|------------|
-| **admin** | admin123 | Todas as abas (Consulta, Cadastro, Tabelas de Referência, Usuários, Linhas Excluídas) |
-| **editor** | editor123 | Consulta, Cadastro, Tabelas de Referência, Linhas Excluídas |
-| **user** | user123 | Apenas Consulta |
+| **admin** | admin123 | Full Access (Consulta, Cadastro, Tabelas Ref, Usuários, Histórico, GTFS) |
+| **editor** | editor123 | Consult, Cadastro, Tabelas Ref, Histórico |
+| **visualizador** | vis123 | Apenas Consulta (com todos os filtros) e Tabelas Ref |
+| **user** | user123 | Apenas Consulta (filtros restritos) |
 
 > ⚠️ As senhas iniciais devem ser alteradas após a primeira utilização. Mínimo 8 caracteres, 1 maiúscula, 1 número, 1 símbolo.
 
@@ -59,21 +65,22 @@ O sistema possui 3 tipos de usuários com permissões diferentes:
 cadastro_RIO_SQLite/
 ├── app.py                      # Aplicação principal Streamlit (Entry Point)
 ├── models/                     # Model - Dados e lógica de banco
-│   ├── __init__.py
 │   ├── db.py                   # Operações de Banco de Dados (CRUD + Auth)
 │   └── config.py               # Conexão com SQLite
 ├── views/                      # View - Interface Streamlit
-│   ├── __init__.py
 │   ├── mod_consulta.py         # Módulo UI: Consulta de linhas
 │   ├── mod_cadastro.py         # Módulo UI: Cadastro de linhas
-│   ├── mod_edicao.py          # Módulo UI: Edição completa de registros
+│   ├── mod_edicao.py           # Módulo UI: Edição completa de registros
 │   ├── mod_ficha.py            # Módulo UI: Ficha cadastral detalhada
-│   ├── mod_historico.py       # Módulo UI: Histórico e rastreamento de revisões
-│   ├── mod_usuarios.py        # Módulo UI: Gerenciamento de usuários (apenas admin)
-│   └── mod_cadastro_ref.py     # Módulo UI: Cadastro de tabelas de referência
+│   ├── mod_historico.py        # Módulo UI: Histórico e rastreamento de revisões
+│   ├── mod_usuarios.py         # Módulo UI: Gerenciamento de usuários (apenas admin)
+│   ├── mod_cadastro_ref.py     # Módulo UI: Cadastro de tabelas de referência
+│   └── mod_gtfs.py             # Módulo UI: Processamento de dados GTFS
 ├── utils/                      # Utilitários
 │   ├── init_db.py              # Script de inicialização do banco de dados
-│   └── init_db_dados_fake.py  # Script para dados de teste
+│   ├── init_db_dados_fake.py   # Script para dados de teste
+│   ├── populate_initial_logs.py # Backfill de histórico para dados existentes
+│   └── ui_components.py        # Componentes visuais reutilizáveis
 ├── database_RIO.db            # Banco de dados SQLite (gerado após init_db)
 ├── Schema.csv                  # Definição do esquema das tabelas
 ├── Schema BQ - TABELAS.csv     # Dados para popular o banco
@@ -88,7 +95,7 @@ cadastro_RIO_SQLite/
 
 ### Autenticação e Autorização
 - ✅ **Login Seguro** - Autenticação com senhas hashadas (bcrypt)
-- ✅ **3 Roles de Usuário** - Admin, Editor, User com permissões específicas
+- ✅ **4 Roles de Usuário** - Admin, Editor, Visualizador e User
 - ✅ **Rate Limiting** - Proteção contra ataques de força bruta
 - ✅ **Validação de Senhas** - Política de segurança robusta
 
@@ -96,10 +103,8 @@ cadastro_RIO_SQLite/
 - ✅ **Cadastro de Linhas** - Adicionar novos registros de ônibus
 - ✅ **Consulta com Filtros** - Busca otimizada por número, área, operador e tipo
 - ✅ **Edição (CRUD Completo)** - Operações seguras de Alterar e Excluir
-- ✅ **Exclusão com Registro** - Linhas excluídas são movidas para tabela histórica
-- ✅ **Linhas Excluídas** - Consulta de linhas removidas com ficha detalhada
+- ✅ **📜 Histórico de Linhas** - Rastreio completo de Criação, Alteração e Exclusão
 - ✅ **Ficha Cadastral** - Interface de visualização detalhada
-- ✅ **Histórico e Revisões** - Rastreio automático de atualizações
 - ✅ **Exportação CSV** - Download dos resultados da consulta
 
 ### Administração (Admin/Editor)
