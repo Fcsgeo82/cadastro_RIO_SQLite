@@ -1,0 +1,374 @@
+diff --git a/models/db.py b/models/db.py
+--- a/models/db.py
++++ b/models/db.py
+@@
+ def opcoes(df: pd.DataFrame) -> dict:
+     """Converte DataFrame {id, label} em dict {label: id} para st.selectbox."""
+     if df.empty:
+         return {}
+     return dict(zip(df["label"], df["id"]))
++
++
++@st.cache_data(ttl=300, show_spinner=False)
++def carregar_referencias_completas() -> dict:
++    """Carrega todas as referências usadas pela UI em um único dicionário cacheado."""
++    df_of = carregar_oficios()
++    return {
++        "servicos":         opcoes(carregar_servicos()),
++        "operadores":       opcoes(carregar_operadores()),
++        "areas_op":         opcoes(carregar_areas_operacionais()),
++        "tipos_sistema":    opcoes(carregar_tipos_sistema()),
++        "tipos_veiculo":    opcoes(carregar_tipos_veiculo()),
++        "grupamentos":      opcoes(carregar_grupamentos()),
++        "caracteristicas":  opcoes(carregar_caracteristicas()),
++        "parametros":       opcoes(carregar_parametros_novos()),
++        "oficios":          opcoes(df_of),
++        "datas_oficios":    dict(zip(df_of["id"], df_of["dataOficio"])) if not df_of.empty else {},
++        "assuntos_oficios": carregar_assuntos_oficios(),
++        "tipologia":        opcoes(carregar_tipologia_rede()),
++        "abrangencia":      opcoes(carregar_abrangencia_territorial()),
++        "geometria":        opcoes(carregar_geometria_tracado()),
++        "hierarquia":       opcoes(carregar_hierarquia_atendimento()),
++    }
+@@
+ def verify_login(username: str, password: str) -> dict:
+-    """Verifica login com rate limiting. Retorna user dict ou {}."""
++    """Verifica login com rate limiting. Retorna um dict com success, user ou mensagem de erro."""
+     df = _query_df("SELECT * FROM Usuarios WHERE username = ?", [username])
+     if df.empty:
+-        return {}
++        return {"success": False, "error": "failed", "message": "Usuário ou senha incorretos."}
+     user_row = df.iloc[0]
+     
+     # Check lockout
+     lockout_until = user_row.get("lockout_until")
+@@
+     if lockout_until:
+         lockout_time = datetime.fromisoformat(str(lockout_until).replace('Z', '+00:00'))
+         if datetime.now(timezone.utc) < lockout_time:
+             remaining = (lockout_time - datetime.now(timezone.utc)).seconds // 60
+-            return {"error": "locked", "message": f"Conta bloqueada. Tente novamente em {remaining} minuto(s)."}
++            return {"success": False, "error": "locked", "message": f"Conta bloqueada. Tente novamente em {remaining} minuto(s)."}
+@@
+     if bcrypt.checkpw(password.encode(), stored_hash):
+         # Reset failed attempts on success
+         _exec("UPDATE Usuarios SET failed_attempts = 0, lockout_until = NULL WHERE userID = ?", [user_row["userID"]])
+         user_dict = user_row.to_dict()
+         user_dict.pop("password_hash", None)
+-        return user_dict
++        return {"success": True, "user": user_dict}
+@@
+     if failed >= 5:
+         lockout = datetime.now(timezone.utc) + timedelta(minutes=15)
+         _exec("UPDATE Usuarios SET failed_attempts = ?, lockout_until = ? WHERE userID = ?", [failed, lockout.isoformat(), user_row["userID"]])
+-        return {"error": "locked", "message": "Muitas tentativas falhas. Conta bloqueada por 15 minutos."}
++        return {"success": False, "error": "locked", "message": "Muitas tentativas falhas. Conta bloqueada por 15 minutos."}
+     else:
+         _exec("UPDATE Usuarios SET failed_attempts = ? WHERE userID = ?", [failed, user_row["userID"]])
+-        return {"error": "failed", "message": f"Usuário ou senha incorretos. Tentativas: {failed}/5"}
++        return {"success": False, "error": "failed", "message": f"Usuário ou senha incorretos. Tentativas: {failed}/5"}
+diff --git a/utils/ui_components.py b/utils/ui_components.py
+--- a/utils/ui_components.py
++++ b/utils/ui_components.py
+@@
+ def obter_label(dicionario_inverso, chave_busca):
+@@
+     for label, id_ in dicionario_inverso.items():
+         if str(id_) == str(chave_busca):
+             return label
+     return str(chave_busca)
++
++
++def selectbox_with_placeholder(
++    label: str,
++    options_dict: dict,
++    selected_id=None,
++    required: bool = False,
++    disabled: bool = False,
++) -> str | None:
++    """Renderiza um selectbox com opção vazia e seleção por ID."""
++    suffix = " *" if required else ""
++    labels = ["— selecione —"] + list(options_dict.keys())
++    index = 0
++
++    if selected_id is not None:
++        for i, (_, value) in enumerate(options_dict.items(), start=1):
++            if str(value) == str(selected_id):
++                index = i
++                break
++        if index >= len(labels):
++            index = 0
++
++    selection = st.selectbox(label + suffix, labels, index=index, disabled=disabled)
++    return None if disabled else options_dict.get(selection)
+diff --git a/views/mod_cadastro.py b/views/mod_cadastro.py
+--- a/views/mod_cadastro.py
++++ b/views/mod_cadastro.py
+@@
+ import streamlit as st
+ import pandas as pd
+ import datetime
+-from models.db import (
+-    inserir_linha, opcoes,
+-    carregar_servicos, carregar_operadores,
+-    carregar_areas_operacionais, 
+-    carregar_parametros_novos, carregar_caracteristicas,
+-    carregar_tipos_sistema, carregar_tipos_veiculo,
+-    carregar_grupamentos, carregar_oficios, carregar_assuntos_oficios,
+-    carregar_tipologia_rede, carregar_abrangencia_territorial,
+-    carregar_geometria_tracado, carregar_hierarquia_atendimento
+-)
++from models.db import inserir_linha, carregar_referencias_completas
++from utils.ui_components import selectbox_with_placeholder
+@@
+-@st.cache_data(ttl=300, show_spinner=False)
+-def _carregar_todas_referencias():
+-    # Cache refresh: 2026-04-08 19:10
+-    """Carrega todas as tabelas de referência de uma vez (cache 5 min)."""
+-    df_of = carregar_oficios()
+-    return {
+-        "servicos":        opcoes(carregar_servicos()),
+-        "operadores":      opcoes(carregar_operadores()),
+-        "areas_op":        opcoes(carregar_areas_operacionais()),
+-        "tipos_sistema":   opcoes(carregar_tipos_sistema()),
+-        "tipos_veiculo":   opcoes(carregar_tipos_veiculo()),
+-        "grupamentos":     opcoes(carregar_grupamentos()),
+-        "oficios":         opcoes(df_of),
+-        "datas_oficios":   dict(zip(df_of["id"], df_of["dataOficio"])) if not df_of.empty else {},
+-        "assuntos_oficios": carregar_assuntos_oficios(),
+-        "tipologia":       opcoes(carregar_tipologia_rede()),
+-        "abrangencia":     opcoes(carregar_abrangencia_territorial()),
+-        "geometria":      opcoes(carregar_geometria_tracado()),
+-        "hierarquia":      opcoes(carregar_hierarquia_atendimento()),
+-    }
+-
+-
+-def _selectbox(label: str, opcoes_dict: dict, obrigatorio: bool = False) -> str | None:
+-    """Renderiza selectbox com opção vazia e retorna o ID selecionado."""
+-    sufixo  = " *" if obrigatorio else ""
+-    rotulos = ["— selecione —"] + list(opcoes_dict.keys())
+-    sel     = st.selectbox(label + sufixo, rotulos)
+-    return opcoes_dict.get(sel)  # None se "— selecione —"
++def _selectbox(label: str, opcoes_dict: dict, obrigatorio: bool = False) -> str | None:
++    return selectbox_with_placeholder(label, opcoes_dict, required=obrigatorio)
+@@
+-    refs = _carregar_todas_referencias()
++    refs = carregar_referencias_completas()
+@@
+-        oficio_id = _selectbox("Selecione o Ofício que originou a linha", refs["oficios"], obrigatorio=True)
++        oficio_id = selectbox_with_placeholder("Selecione o Ofício que originou a linha", refs["oficios"], required=True)
+@@
+-            servico_label    = _selectbox("Serviço", refs["servicos"], obrigatorio=True)
++            servico_label    = selectbox_with_placeholder("Serviço", refs["servicos"], required=True)
+@@
+-            operador_label   = _selectbox("Operador", refs["operadores"], obrigatorio=True)
++            operador_label   = selectbox_with_placeholder("Operador", refs["operadores"], required=True)
+@@
+-            area_op_id       = _selectbox("Área Operacional", refs["areas_op"])
++            area_op_id       = selectbox_with_placeholder("Área Operacional", refs["areas_op"])
+@@
+-            tipo_sistema_id  = _selectbox("Tipo de Operação", refs["tipos_sistema"])
++            tipo_sistema_id  = selectbox_with_placeholder("Tipo de Operação", refs["tipos_sistema"])
+@@
+-            tipologia_id = _selectbox("Tipologia de Rede", refs["tipologia"])
++            tipologia_id = selectbox_with_placeholder("Tipologia de Rede", refs["tipologia"])
+@@
+-            abrangencia_id   = _selectbox("Abrangência Territorial", refs["abrangencia"])
++            abrangencia_id   = selectbox_with_placeholder("Abrangência Territorial", refs["abrangencia"])
+@@
+-            geometria_id     = _selectbox("Geometria do Traçado", refs["geometria"])
++            geometria_id     = selectbox_with_placeholder("Geometria do Traçado", refs["geometria"])
+@@
+-            hierarquia_id    = _selectbox("Hierarquia de Atendimento", refs["hierarquia"])
++            hierarquia_id    = selectbox_with_placeholder("Hierarquia de Atendimento", refs["hierarquia"])
+@@
+-            grupamento_label = _selectbox("Grupamento BRS", refs["grupamentos"])
++            grupamento_label = selectbox_with_placeholder("Grupamento BRS", refs["grupamentos"])
+@@
+-            frota_tipo_veiculo_id  = _selectbox("Tipo de Veículo da Frota", refs["tipos_veiculo"])
++            frota_tipo_veiculo_id  = selectbox_with_placeholder("Tipo de Veículo da Frota", refs["tipos_veiculo"])
+@@
+-            frota_ultimo_oficio_id = _selectbox("Ofício de Autorização da Frota", refs["oficios"])
++            frota_ultimo_oficio_id = selectbox_with_placeholder("Ofício de Autorização da Frota", refs["oficios"])
+@@
+-            it_reg_oficio_id = _selectbox("Ofício de Autorização (Regular)", refs["oficios"])
++            it_reg_oficio_id = selectbox_with_placeholder("Ofício de Autorização (Regular)", refs["oficios"])
+@@
+-            it_a1_oficio_id = _selectbox("Ofício de Autorização (Alt 1)", refs["oficios"])
++            it_a1_oficio_id = selectbox_with_placeholder("Ofício de Autorização (Alt 1)", refs["oficios"])
+@@
+-            it_a2_oficio_id = _selectbox("Ofício de Autorização (Alt 2)", refs["oficios"])
++            it_a2_oficio_id = selectbox_with_placeholder("Ofício de Autorização (Alt 2)", refs["oficios"])
+@@
+-            it_a3_oficio_id = _selectbox("Ofício de Autorização (Alt 3)", refs["oficios"])
++            it_a3_oficio_id = selectbox_with_placeholder("Ofício de Autorização (Alt 3)", refs["oficios"])
+diff --git a/views/mod_consulta.py b/views/mod_consulta.py
+--- a/views/mod_consulta.py
++++ b/views/mod_consulta.py
+@@
+ import io
+ import streamlit as st
+-from models.db import (
+-    consultar_linhas, opcoes,
+-    carregar_areas_operacionais, carregar_operadores, carregar_tipos_sistema,
+-    carregar_caracteristicas, carregar_parametros_novos, carregar_tipos_veiculo,
+-    carregar_grupamentos, carregar_tipologia_rede, carregar_abrangencia_territorial,
+-    carregar_geometria_tracado, carregar_hierarquia_atendimento
+-)
++from models.db import consultar_linhas, carregar_referencias_completas
+@@
+-@st.cache_data(ttl=300, show_spinner=False)
+-def _refs_consulta():
+-    # Force refresh: 2026-05-07
+-    return {
+-        "areas_op":       opcoes(carregar_areas_operacionais()),
+-        "operadores":     opcoes(carregar_operadores()),
+-        "tipos_sistema":  opcoes(carregar_tipos_sistema()),
+-        "tipos_veiculo":  opcoes(carregar_tipos_veiculo()),
+-        "grupamentos":    opcoes(carregar_grupamentos()),
+-        "tipologia":      opcoes(carregar_tipologia_rede()),
+-        "abrangencia":    opcoes(carregar_abrangencia_territorial()),
+-        "geometria":      opcoes(carregar_geometria_tracado()),
+-        "hierarquia":     opcoes(carregar_hierarquia_atendimento()),
+-    }
++def _refs_consulta():
++    return carregar_referencias_completas()
+diff --git a/views/mod_edicao.py b/views/mod_edicao.py
+--- a/views/mod_edicao.py
++++ b/views/mod_edicao.py
+@@
+ import streamlit as st
+ import datetime
+ import pandas as pd
+-from models.db import obter_linha_por_id, atualizar_linha
+-from views.mod_cadastro import _carregar_todas_referencias
++from models.db import obter_linha_por_id, atualizar_linha, carregar_referencias_completas
+ from views.mod_cadastro import _carregar_todas_referencias
+ from utils.ui_components import obter_label
++from utils.ui_components import selectbox_with_placeholder
+@@
+-def _selectbox(label: str, opcoes_dict: dict, valor_db: str, obrigatorio: bool = False, disabled: bool = False):
++def _selectbox(label: str, opcoes_dict: dict, valor_db: str, obrigatorio: bool = False, disabled: bool = False):
+     sufixo  = " *" if obrigatorio else ""
+     rotulos = ["— selecione —"] + list(opcoes_dict.keys())
+     idx = _get_index(opcoes_dict, valor_db)
+@@
+-    sel = st.selectbox(label + sufixo, rotulos, index=idx, disabled=disabled)
+-    return None if disabled else opcoes_dict.get(sel)
++    return selectbox_with_placeholder(label, opcoes_dict, selected_id=valor_db, required=obrigatorio, disabled=disabled)
+@@
+-    refs = _carregar_todas_referencias()
++    refs = carregar_referencias_completas()
+@@
+-            servico_label  = _selectbox("Serviço", refs.get("servicos", {}), dados_bd.get("servico"), obrigatorio=True, disabled=True)
++            servico_label  = selectbox_with_placeholder("Serviço", refs.get("servicos", {}), selected_id=dados_bd.get("servico"), required=True, disabled=True)
+@@
+-            operador_label = _selectbox("Operador", refs.get("operadores", {}), dados_bd.get("operador"), obrigatorio=True, disabled=False)
++            operador_label = selectbox_with_placeholder("Operador", refs.get("operadores", {}), selected_id=dados_bd.get("operador"), required=True, disabled=False)
+@@
+-            area_op_id       = _selectbox("Área Operacional", refs.get("areas_op", {}), dados_bd.get("areaOperacional"))
++            area_op_id       = selectbox_with_placeholder("Área Operacional", refs.get("areas_op", {}), selected_id=dados_bd.get("areaOperacional"))
+@@
+-            tipo_sistema_id  = _selectbox("Tipo de Operação", refs.get("tipos_sistema", {}), dados_bd.get("tipoSistema"))
++            tipo_sistema_id  = selectbox_with_placeholder("Tipo de Operação", refs.get("tipos_sistema", {}), selected_id=dados_bd.get("tipoSistema"))
+@@
+-            tipologia_id = _selectbox("Tipologia de Rede", refs.get("tipologia", {}), dados_bd.get("tipologiaRede"))
++            tipologia_id = selectbox_with_placeholder("Tipologia de Rede", refs.get("tipologia", {}), selected_id=dados_bd.get("tipologiaRede"))
+@@
+-            abrangencia_id   = _selectbox("Abrangência Territorial", refs.get("abrangencia", {}), dados_bd.get("abrangenciaTerritorial"))
++            abrangencia_id   = selectbox_with_placeholder("Abrangência Territorial", refs.get("abrangencia", {}), selected_id=dados_bd.get("abrangenciaTerritorial"))
+@@
+-            geometria_id     = _selectbox("Geometria do Traçado", refs.get("geometria", {}), dados_bd.get("geometriaTracado"))
++            geometria_id     = selectbox_with_placeholder("Geometria do Traçado", refs.get("geometria", {}), selected_id=dados_bd.get("geometriaTracado"))
+@@
+-            hierarquia_id    = _selectbox("Hierarquia de Atendimento", refs.get("hierarquia", {}), dados_bd.get("hierarquiaAtendimento"))
++            hierarquia_id    = selectbox_with_placeholder("Hierarquia de Atendimento", refs.get("hierarquia", {}), selected_id=dados_bd.get("hierarquiaAtendimento"))
+@@
+-            grupamento_label = _selectbox("Grupamento BRS", refs.get("grupamentos", {}), grupamento_id)
++            grupamento_label = selectbox_with_placeholder("Grupamento BRS", refs.get("grupamentos", {}), selected_id=grupamento_id)
+@@
+-            oficio_especial_id = _selectbox("Ofício — Alteração Especial (Opcional)", refs.get("oficios", {}), None)
++            oficio_especial_id = selectbox_with_placeholder("Ofício — Alteração Especial (Opcional)", refs.get("oficios", {}), selected_id=None)
+@@
+-            frota_tipo_veiculo_id  = _selectbox("Tipo de Veículo da Frota", refs.get("tipos_veiculo", {}), dados_bd.get("frotaTipoVeiculo"))
++            frota_tipo_veiculo_id  = selectbox_with_placeholder("Tipo de Veículo da Frota", refs.get("tipos_veiculo", {}), selected_id=dados_bd.get("frotaTipoVeiculo"))
+@@
+-            frota_ultimo_oficio_id = _selectbox("Ofício de Autorização da Frota", refs.get("oficios", {}), dados_bd.get("frotaUltimoOficio"))
++            frota_ultimo_oficio_id = selectbox_with_placeholder("Ofício de Autorização da Frota", refs.get("oficios", {}), selected_id=dados_bd.get("frotaUltimoOficio"))
+@@
+-            it_reg_oficio_id = _selectbox("Ofício de Autorização (Regular)", refs.get("oficios", {}), it_reg_oficio_db)
++            it_reg_oficio_id = selectbox_with_placeholder("Ofício de Autorização (Regular)", refs.get("oficios", {}), selected_id=it_reg_oficio_db)
+@@
+-            it_a1_oficio_id = _selectbox("Ofício de Autorização (Alt 1)", refs.get("oficios", {}), it_a1_oficio_db)
++            it_a1_oficio_id = selectbox_with_placeholder("Ofício de Autorização (Alt 1)", refs.get("oficios", {}), selected_id=it_a1_oficio_db)
+@@
+-            it_a2_oficio_id = _selectbox("Ofício de Autorização (Alt 2)", refs.get("oficios", {}), it_a2_oficio_db)
++            it_a2_oficio_id = selectbox_with_placeholder("Ofício de Autorização (Alt 2)", refs.get("oficios", {}), selected_id=it_a2_oficio_db)
+@@
+-            it_a3_oficio_id = _selectbox("Ofício de Autorização (Alt 3)", refs.get("oficios", {}), it_a3_oficio_db)
++            it_a3_oficio_id = selectbox_with_placeholder("Ofício de Autorização (Alt 3)", refs.get("oficios", {}), selected_id=it_a3_oficio_db)
+diff --git a/views/mod_ficha.py b/views/mod_ficha.py
+--- a/views/mod_ficha.py
++++ b/views/mod_ficha.py
+@@
+ import streamlit as st
+ import re
+ import pandas as pd
+ import streamlit.components.v1 as components
+ import pydeck as pdk
+ from models.db import obter_linha_por_id
+-from views.mod_cadastro import _carregar_todas_referencias
++from models.db import obter_linha_por_id, carregar_referencias_completas
+ from models.gtfs_loader import load_gtfs_data, processar_quadro_horario
+ from utils.ui_components import render_logo, obter_label
+@@
+-    refs = _carregar_todas_referencias()
++    refs = carregar_referencias_completas()
+diff --git a/views/mod_historico.py b/views/mod_historico.py
+--- a/views/mod_historico.py
++++ b/views/mod_historico.py
+@@
+ import streamlit as st
+ import datetime
+ from models.db import obter_linha_por_id, obter_oficios_itinerarios
+-from views.mod_cadastro import _carregar_todas_referencias
++from models.db import obter_linha_por_id, obter_oficios_itinerarios, carregar_referencias_completas
+ from utils.ui_components import obter_label
+@@
+-    refs = _carregar_todas_referencias()
++    refs = carregar_referencias_completas()
+diff --git a/app.py b/app.py
+--- a/app.py
++++ b/app.py
+@@
+-from models.db import (
+-    consultar_historico, 
+-    obter_linha_excluida_por_id, 
+-    carregar_oficios, 
+-    carregar_assuntos_oficios,
+-    opcoes,
+-    excluir_linha
+-)
++from models.db import (
++    consultar_historico,
++    obter_linha_excluida_por_id,
++    carregar_oficios,
++    opcoes,
++    excluir_linha
++)
+@@
+-    refs = _carregar_todas_referencias()
+-    oficios_info = carregar_assuntos_oficios()
++    refs = db.carregar_referencias_completas()
++    oficios_info = refs["assuntos_oficios"]
+@@
+-                if user and "error" not in user:
+-                    st.session_state.update({'logged_in': True, 'user': user['username'], 'role': user['role']})
++                if user.get("success"):
++                    st.session_state.update({'logged_in': True, 'user': user['user']['username'], 'role': user['user']['role']})
+                     st.success(f"Bem-vindo, {user['username']} ({user['role']})!")
+                     st.rerun()
+                 elif user.get("error") == "locked":
+                     st.error(f"🚫 {user.get('message')}")
+                 else:
+                     st.error("Usuário ou senha incorretos.")
