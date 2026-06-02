@@ -172,11 +172,24 @@ def render(linha_id: str):
         cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 10px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }}
+    @page {{
+        size: A4;
+        margin: 25mm 15mm 30mm 15mm;
+        @bottom-center {{ content: counter(page) " / " counter(pages); font-size: 9px; font-family: 'Roboto', sans-serif; color: #666; }}
+    }}
+    @page :first {{
+        margin: 15mm 15mm 25mm 15mm;
+        @bottom-center {{ content: counter(page) " / " counter(pages); font-size: 9px; font-family: 'Roboto', sans-serif; color: #666; }}
+    }}
     @media print {{
         .no-print {{ display: none !important; }}
         body {{ background: white; padding: 0; }}
-        .ficha-container {{ box-shadow: none; width: 100%; }}
-        .header-rio {{ -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }}
+        .ficha-container {{ box-shadow: none; width: 100%; max-width: none; margin: 0; padding: 0; border-radius: 0; }}
+        .section {{ page-break-inside: avoid; }}
+        .header-rio, .status-ativa, .status-inativa, .area-badge {{
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }}
     }}
     </style>
     </head>
@@ -266,19 +279,45 @@ def render(linha_id: str):
             {itinerarios_html}
         </div>
     </div>
+    <script>setTimeout(function(){{ window.print(); }}, 600);</script>
     </body>
     </html>
     """
 
-    col_back, _ = st.columns([1.5, 8.5])
+    col_back, col_print, _ = st.columns([1.5, 2, 7])
     with col_back:
         if st.button("⬅️ Voltar", width='stretch', key="btn_voltar_ficha"):
             st.session_state["aba_ativa"] = "Principal"
             st.rerun()
+    with col_print:
+        import base64
+        b64_print = base64.b64encode(html_doc.encode("utf-8")).decode("ascii")
+        print_html = f'''<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+body{{margin:0;padding:0;font-family:inherit;}}
+.btn{{display:inline-block;width:100%;box-sizing:border-box;text-align:center;
+background:#000;color:#ffdc00;padding:0.5rem 1rem;border-radius:0.5rem;
+text-decoration:none;font-weight:bold;font-size:14px;}}
+</style></head><body>
+<a id="printbtn" class="btn" href="#" target="_blank">🖨️ Imprimir Ficha</a>
+<script>
+(function(){{
+    var b64 = "{b64_print}";
+    var raw = atob(b64);
+    var buf = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i);
+    var blob = new Blob([buf], {{type: "text/html;charset=utf-8"}});
+    var url = URL.createObjectURL(blob);
+    var a = document.getElementById("printbtn");
+    a.href = url;
+    a.addEventListener("click", function(){{
+        setTimeout(function(){{ URL.revokeObjectURL(url); }}, 60000);
+    }});
+}})();
+</script>
+</body></html>'''
+        components.html(print_html, height=80)
 
-    import urllib.parse
-    encoded_html = urllib.parse.quote(html_doc)
-    iframe_html = f'<iframe id="ficha-frame" src="data:text/html;charset=utf-8,{encoded_html}" style="width:100%;height:1000px;border:none;"></iframe>'
+    iframe_html = f'<iframe src="data:text/html;base64,{b64_print}" style="width:100%;height:1000px;border:none;"></iframe>'
     st.markdown(iframe_html, unsafe_allow_html=True)
 
     # ── SEÇÃO GTFS ───────────────────────────────────────────
