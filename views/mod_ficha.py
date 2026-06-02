@@ -28,6 +28,12 @@ def render(linha_id: str):
 
     # --- Mapeamento de Dados ---
     v_linha = dados.get('numeroLinha', '-')
+
+    # --- Carregar Dados GTFS (dinâmico, sem salvar no BD) ---
+    gtfs = load_gtfs_data(v_linha)
+    is_ativa = gtfs is not None
+    v_gtfs_status = "Ativa" if is_ativa else "Inativa"
+    v_gtfs_class = "status-ativa" if is_ativa else "status-inativa"
     v_servico = obter_label(refs.get('servicos', {}), dados.get('servico'))
     v_vista = dados.get('vista', '-')
     v_via = dados.get('via') or '-'
@@ -144,6 +150,9 @@ def render(linha_id: str):
     .label {{ font-weight: 700; white-space: nowrap; font-size: 11px; }}
     .value {{ font-weight: 400; font-size: 11px; }}
     .area-badge {{ color: white; padding: 2px 30px; font-weight: bold; font-size: 11px; margin-left: 10px; border-radius: 0px; text-transform: lowercase; }}
+    .status-badge {{ color: white; padding: 2px 8px; font-weight: bold; font-size: 9px; border-radius: 4px; text-transform: uppercase; margin-left: 5px; display: inline-block; }}
+    .status-ativa {{ background-color: #2e7d32; }}
+    .status-inativa {{ background-color: #c62828; }}
     .it-sub-header {{ font-weight: 700; margin: 10px 0 5px 0; font-size: 11px; text-decoration: none; }}
     .it-table {{ width: 100%; border-collapse: collapse; margin-bottom: 15px; }}
     .it-table th {{ text-align: left; font-weight: 700; padding: 4px 0; border-bottom: 1px solid #eee; }}
@@ -184,6 +193,7 @@ def render(linha_id: str):
                 <div class="field" style="grid-column: span 6;"><span class="label">Data de Criação:</span><span class="value">{v_criacao}</span></div>
                 <div class="field" style="grid-column: span 6;"><span class="label">Extensão de ida:</span><span class="value">{v_km_ida} km</span></div>
                 <div class="field" style="grid-column: span 6;"><span class="label">Extensão de volta:</span><span class="value">{v_km_volta} km</span></div>
+                <div class="field" style="grid-column: span 6;"><span class="label">Plano Operacional (GTFS):</span><span class="status-badge {v_gtfs_class}">{v_gtfs_status}</span></div>
                 <div class="field" style="grid-column: span 12;"><span class="label">Observação:</span><span class="value">{v_obs}</span></div>
             </div>
         </div>
@@ -260,7 +270,6 @@ def render(linha_id: str):
     st.markdown("---")
     st.markdown("### 📊 Planejamento Operacional (GTFS)")
     
-    gtfs = load_gtfs_data(v_linha)
     if gtfs:
         st.success(f"✅ Dados encontrados no arquivo: `{gtfs['filename']}`")
         tab_mapa, tab_horario, tab_stops = st.tabs(["🗺️ Mapa do Itinerário", "🕒 Quadro Horário (Partidas)", "🛑 Pontos de Parada"])
