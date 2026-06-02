@@ -251,8 +251,6 @@ def render(linha_id: str):
                 <div class="field" style="grid-column: span 6;"><span class="label">Tecnologia Autorizada:</span><span class="value">{v_frota_tipo}</span></div>
                 <div class="field" style="grid-column: span 6;"><span class="label">Ofício de Autorização:</span><span class="value">{v_frota_of_html}</span></div>
                 <div class="field" style="grid-column: span 6;"><span class="label">Propulsão:</span><span class="value">-</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Código Planta:</span><span class="value">-</span></div>
-                <div class="field" style="grid-column: span 12;"><span class="label">Configuração:</span><span class="value">-</span></div>
             </div>
         </div>
 
