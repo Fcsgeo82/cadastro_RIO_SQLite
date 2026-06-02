@@ -45,6 +45,12 @@ def render(linha_id: str):
 
     v_tipo = obter_label(refs.get('tipos_sistema', {}), dados.get('tipoSistema'))
     v_area_op = obter_label(refs.get('areas_op', {}), dados.get('areaOperacional'))
+    CORES_AREA = {
+        "Roxo": "#8330A5", "Laranja": "#FF8C00", "Marrom": "#8B4513",
+        "Ciano": "#00BFFF", "Rosa": "#FF69B4", "Verde": "#2E8B57",
+        "Azul": "#1a3a5c", "Vermelho": "#DC143C", "Cinza": "#808080",
+    }
+    v_cor_area = next((hex for nome, hex in CORES_AREA.items() if nome in v_area_op), "#1a3a5c")
     v_grupamento = obter_label(refs.get('grupamentos', {}), dados.get('grupamentoBRS'))
     
     v_km_ida = str(dados.get('kmIDA')).replace('.',',') if dados.get('kmIDA') else '-'
@@ -211,7 +217,7 @@ def render(linha_id: str):
                 <div class="field" style="grid-column: span 6;"><span class="label">Nome Fantasia:</span><span class="value">{v_operador}</span></div>
                 <div class="field" style="grid-column: span 12;">
                     <span class="label">Área Operacional:</span>
-                    <span class="area-badge" style="background:{'#8330A5' if 'Roxo' in v_area_op else '#1a3a5c'}">{v_area_op}</span>
+                    <span class="area-badge" style="background:{v_cor_area}">{v_area_op}</span>
                 </div>
             </div>
         </div>
