@@ -62,7 +62,9 @@ def render(linha_id: str):
         return lbl
 
     v_oficio_prin = _of_html(dados.get('oficio'))
-    v_oficio_ult  = _of_html(dados.get('oficioUltimaAlteracao'))
+    oficio_ult_id = dados.get('oficioUltimaAlteracao')
+    v_oficio_ult  = _of_html(oficio_ult_id)
+    v_oficio_ult_assunto = refs.get("assuntos_oficios", {}).get(oficio_ult_id, "-") if oficio_ult_id else "-"
     
     v_frota_of_html = _of_html(dados.get('frotaUltimoOficio'))
     v_frota_tipo = obter_label(refs.get('tipos_veiculo', {}), dados.get('frotaTipoVeiculo'))
@@ -229,7 +231,16 @@ def render(linha_id: str):
             <div class="data-grid">
                 <div class="field" style="grid-column: span 6;"><span class="label">Ofício de Criação:</span><span class="value">{v_oficio_prin}</span></div>
                 <div class="field" style="grid-column: span 6;"><span class="label">Início de Vigência:</span><span class="value">{v_criacao}</span></div>
-                <div class="field" style="grid-column: span 12;"><span class="label">Ofício de Última Alteração:</span><span class="value">{v_oficio_ult}</span></div>
+                <div class="field" style="grid-column: span 12; flex-direction: column; align-items: flex-start; gap: 2px;">
+                    <div>
+                        <span class="label">Ofício de Última Alteração:</span>
+                        <span class="value">{v_oficio_ult}</span>
+                    </div>
+                    <div style="margin-top: 2px;">
+                        <span class="label" style="font-weight: 500; color: #555;">Assunto:</span>
+                        <span class="value" style="font-style: italic;">{v_oficio_ult_assunto}</span>
+                    </div>
+                </div>
             </div>
         </div>
 

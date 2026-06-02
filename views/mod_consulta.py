@@ -29,6 +29,21 @@ def _refs_consulta():
     }
 
 
+def aplicar_filtro_gtfs(df, filtro):
+    if df.empty:
+        return df
+    from models.gtfs_loader import get_all_gtfs_routes
+    active_routes = get_all_gtfs_routes()
+    df['Status no GTFS'] = df['Número'].astype(str).apply(
+        lambda x: "Ativa" if x in active_routes else "Inativa"
+    )
+    if filtro == "Ativas no GTFS":
+        df = df[df['Status no GTFS'] == "Ativa"]
+    elif filtro == "Inativas no GTFS":
+        df = df[df['Status no GTFS'] == "Inativa"]
+    return df
+
+
 def render():
     st.markdown("### 🔍 Consultar Linhas")
     st.markdown("Filtre por número, área operacional, ou tipo de operação, por exemplo.")
@@ -46,6 +61,7 @@ def render():
         filtro_geral = st.text_input("🔍 Busca Geral (Qualquer campo)", placeholder="Ex: nome de rua, bairro, operador...")
 
     # Inicializa variáveis para evitar NameError
+    filtro_gtfs = "Todos"
     area_op_id = ""
     operador_id = ""
     tipo_sistema_id = ""
@@ -105,7 +121,7 @@ def render():
             sel_tip         = st.selectbox("Tipologia de Rede", tip_labels)
             tipologia_id    = refs["tipologia"].get(sel_tip, "")
 
-        col9, col10, _ , _ = st.columns(4)
+        col9, col10, col11, _ = st.columns(4)
         with col9:
             tv_labels       = ["Todos"] + list(refs["tipos_veiculo"].keys())
             sel_tv          = st.selectbox("Frota Autorizada", tv_labels)
@@ -114,6 +130,8 @@ def render():
             grup_labels     = ["Todos"] + list(refs["grupamentos"].keys())
             sel_grup        = st.selectbox("Grupamento BRS", grup_labels)
             grupamento_id   = refs["grupamentos"].get(sel_grup, "")
+        with col11:
+            filtro_gtfs     = st.selectbox("Status no GTFS", ["Todos", "Ativas no GTFS", "Inativas no GTFS"])
 
     col_b1, col_b2, _ = st.columns([1, 1, 4])
     with col_b1:
@@ -139,11 +157,13 @@ def render():
                 geometria_id        = geometria_id,
                 hierarquia_id       = hierarquia_id,
             )
+        df = aplicar_filtro_gtfs(df, filtro_gtfs)
         st.session_state["resultado_consulta"] = df
 
     elif listar_todas:
         with st.spinner("Carregando todas as linhas..."):
             df = consultar_linhas()
+        df = aplicar_filtro_gtfs(df, filtro_gtfs)
         st.session_state["resultado_consulta"] = df
 
     # ── Exibição ─────────────────────────────────────────────────

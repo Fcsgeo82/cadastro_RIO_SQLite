@@ -19,6 +19,21 @@ def get_latest_gtfs_path():
     # Retorna o arquivo com a data de modificação mais recente
     return max(files, key=os.path.getmtime)
 
+@st.cache_data(ttl=3600, show_spinner="Carregando rotas do GTFS...")
+def get_all_gtfs_routes():
+    """Retorna um set com todas as rotas (route_short_name) do GTFS mais recente."""
+    gtfs_path = get_latest_gtfs_path()
+    if not gtfs_path:
+        return set()
+    try:
+        with zipfile.ZipFile(gtfs_path, 'r') as z:
+            with z.open('routes.txt') as f:
+                routes = pd.read_csv(f, dtype={'route_short_name': str})
+            return set(routes['route_short_name'].dropna().unique())
+    except Exception as e:
+        print(f"Erro ao ler rotas do GTFS: {e}")
+        return set()
+
 @st.cache_data(ttl=3600, show_spinner="Carregando dados GTFS...")
 def load_gtfs_data(numero_linha: str):
     """
