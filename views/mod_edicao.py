@@ -176,14 +176,16 @@ def render(linha_id: str):
         # ── Frota ────────────────────────────────────────────────
         st.divider()
         st.markdown("#### 🚍 Frota")
-        col17, col18, col19 = st.columns(3)
+        col17, col18, col19, col20 = st.columns(4)
         with col17:
             frota_tipo_veiculo_id  = _selectbox("Tipo de Veículo da Frota", refs.get("tipos_veiculo", {}), dados_bd.get("frotaTipoVeiculo"))
         with col18:
+            frota_tipo_propulsao_id = _selectbox("Propulsão", refs.get("tipos_propulsao", {}), dados_bd.get("frotaTipoPropulsao"))
+        with col19:
             frota_ultimo_oficio_id = _selectbox("Ofício de Autorização da Frota", refs.get("oficios", {}), dados_bd.get("frotaUltimoOficio"))
             if frota_ultimo_oficio_id:
                 st.caption(f"**Assunto:** {refs.get('assuntos_oficios', {}).get(frota_ultimo_oficio_id, 'Sem assunto')}")
-        with col19:
+        with col20:
             dtf = None
             if dados_bd.get("frotaDataOficio"):
                 try: dtf = datetime.datetime.strptime(dados_bd["frotaDataOficio"], "%Y-%m-%d").date()
@@ -234,127 +236,128 @@ def render(linha_id: str):
             st.write("") # Espaçador
             df_a3_volta = _itinerario_editor_edicao("Volta", "edit_a3_volta", _load_itinerario_df(it_lista, "A3", "1"))
 
-    # ── Observação ───────────────────────────────────────────
-    st.divider()
-    observacao = st.text_area("📝 Observação Geral", height=80, value=dados_bd.get("observacao") or "")
+        # ── Observação ───────────────────────────────────────────
+        st.divider()
+        observacao = st.text_area("📝 Observação Geral", height=80, value=dados_bd.get("observacao") or "")
 
-    # ── Submit ───────────────────────────────────────────────
-    submitted = st.form_submit_button("💾 Salvar Alterações", width='stretch', type="primary")
+        # ── Submit ───────────────────────────────────────────────
+        submitted = st.form_submit_button("💾 Salvar Alterações", width='stretch', type="primary")
 
-    if submitted:
-        # Campos obrigatórios - usar valores do BD para campos disabled
-        if not servico_label:
-            servico_label = dados_bd.get("servico")
-        if not operador_label:
-            operador_label = dados_bd.get("operador")
+        if submitted:
+            # Campos obrigatórios - usar valores do BD para campos disabled
+            if not servico_label:
+                servico_label = dados_bd.get("servico")
+            if not operador_label:
+                operador_label = dados_bd.get("operador")
+                
+            obrigatorios = {"Número": numeroLinha, "Vista": vista, "Data Criação": dataCriacaoLinha, "Serviço": servico_label, "Operador": operador_label}
+            faltando = [k for k, v in obrigatorios.items() if not v]
             
-        obrigatorios = {"Número": numeroLinha, "Vista": vista, "Data Criação": dataCriacaoLinha, "Serviço": servico_label, "Operador": operador_label}
-        faltando = [k for k, v in obrigatorios.items() if not v]
-        
-        if faltando:
-            st.error(f"⚠️ Preencha os obrigatórios: {', '.join(faltando)}")
-            return
+            if faltando:
+                st.error(f"⚠️ Preencha os obrigatórios: {', '.join(faltando)}")
+                return
 
-        # ---- LÓGICA DE ÚLTIMA ALTERAÇÃO AUTOMÁTICA ----
-        oficios_alterados = []
-        
-        if frota_ultimo_oficio_id and str(frota_ultimo_oficio_id) != str(dados_bd.get("frotaUltimoOficio") or ""):
-            oficios_alterados.append(str(frota_ultimo_oficio_id))
-
-        if oficio_especial_id and str(oficio_especial_id) != str(dados_bd.get("oficio") or ""):
-            oficios_alterados.append(str(oficio_especial_id))
+            # ---- LÓGICA DE ÚLTIMA ALTERAÇÃO AUTOMÁTICA ----
+            oficios_alterados = []
             
-        if it_reg_oficio_id and str(it_reg_oficio_id) != str(it_reg_oficio_db or ""):
-            oficios_alterados.append(str(it_reg_oficio_id))
+            if frota_ultimo_oficio_id and str(frota_ultimo_oficio_id) != str(dados_bd.get("frotaUltimoOficio") or ""):
+                oficios_alterados.append(str(frota_ultimo_oficio_id))
 
-        if it_a1_oficio_id and str(it_a1_oficio_id) != str(it_a1_oficio_db or ""):
-            oficios_alterados.append(str(it_a1_oficio_id))
+            if oficio_especial_id and str(oficio_especial_id) != str(dados_bd.get("oficio") or ""):
+                oficios_alterados.append(str(oficio_especial_id))
+                
+            if it_reg_oficio_id and str(it_reg_oficio_id) != str(it_reg_oficio_db or ""):
+                oficios_alterados.append(str(it_reg_oficio_id))
 
-        if it_a2_oficio_id and str(it_a2_oficio_id) != str(it_a2_oficio_db or ""):
-            oficios_alterados.append(str(it_a2_oficio_id))
+            if it_a1_oficio_id and str(it_a1_oficio_id) != str(it_a1_oficio_db or ""):
+                oficios_alterados.append(str(it_a1_oficio_id))
 
-        if it_a3_oficio_id and str(it_a3_oficio_id) != str(it_a3_oficio_db or ""):
-            oficios_alterados.append(str(it_a3_oficio_id))
+            if it_a2_oficio_id and str(it_a2_oficio_id) != str(it_a2_oficio_db or ""):
+                oficios_alterados.append(str(it_a2_oficio_id))
 
-        if oficios_alterados:
-            # Achar o ofício mais recente entre os alterados
-            oficio_mais_recente_id = None
-            for of_id in refs.get("oficios", {}).values():
-                if str(of_id) in oficios_alterados:
-                    oficio_mais_recente_id = of_id
-                    break
-            
-            if oficio_mais_recente_id:
-                oficio_ult_alt_id = oficio_mais_recente_id
+            if it_a3_oficio_id and str(it_a3_oficio_id) != str(it_a3_oficio_db or ""):
+                oficios_alterados.append(str(it_a3_oficio_id))
 
-        # Resolvendo Grupamento para passar pro DB (pode ser o label ou ID dependendo do salvamento)
-        dados = {
-            "numeroLinha":              numeroLinha,
-            "dataCriacaoLinha":         dataCriacaoLinha,
-            "servico":                  servico_label,
-            "operador":                 operador_label,
-            "vista":                    vista,
-            "via":                      via,
-            "areaOperacional":          area_op_id,
-            "oficio":                   dados_bd.get("oficio"), # Imutável após o cadastro
-            "oficioprimeiroHistorico":  oficio_prim_hist_id,
-            "oficioUltimaAlteracao":    oficio_ult_alt_id,
-            "tipoSistema":              tipo_sistema_id,
-            "kmIDA":                    kmIDA if kmIDA else None,
-            "kmVOLTA":                  kmVOLTA if kmVOLTA else None,
-            "parametro_novo":           None,
-            "caracteristica":           None,
-            "grupamentoBRS":            grupamento_label,
-            "tipologiaRede":            tipologia_id,
-            "abrangenciaTerritorial":   abrangencia_id,
-            "geometriaTracado":         geometria_id,
-            "hierarquiaAtendimento":    hierarquia_id,
-            "frotaTipoVeiculo":         frota_tipo_veiculo_id,
-            "frotaUltimoOficio":        frota_ultimo_oficio_id,
-            "frotaDataOficio":          str(frotaDataOficio) if frotaDataOficio else None,
-            "observacao":               observacao,
-            "itinerarios":              [], # Será preenchido abaixo
-            "itinerarios_oficios": {
-                "R": it_reg_oficio_id,
-                "A1": it_a1_oficio_id,
-                "A2": it_a2_oficio_id,
-                "A3": it_a3_oficio_id
+            if oficios_alterados:
+                # Achar o ofício mais recente entre os alterados
+                oficio_mais_recente_id = None
+                for of_id in refs.get("oficios", {}).values():
+                    if str(of_id) in oficios_alterados:
+                        oficio_mais_recente_id = of_id
+                        break
+                
+                if oficio_mais_recente_id:
+                    oficio_ult_alt_id = oficio_mais_recente_id
+
+            # Resolvendo Grupamento para passar pro DB (pode ser o label ou ID dependendo do salvamento)
+            dados = {
+                "numeroLinha":              numeroLinha,
+                "dataCriacaoLinha":         dataCriacaoLinha,
+                "servico":                  servico_label,
+                "operador":                 operador_label,
+                "vista":                    vista,
+                "via":                      via,
+                "areaOperacional":          area_op_id,
+                "oficio":                   dados_bd.get("oficio"), # Imutável após o cadastro
+                "oficioprimeiroHistorico":  oficio_prim_hist_id,
+                "oficioUltimaAlteracao":    oficio_ult_alt_id,
+                "tipoSistema":              tipo_sistema_id,
+                "kmIDA":                    kmIDA if kmIDA else None,
+                "kmVOLTA":                  kmVOLTA if kmVOLTA else None,
+                "parametro_novo":           None,
+                "caracteristica":           None,
+                "grupamentoBRS":            grupamento_label,
+                "tipologiaRede":            tipologia_id,
+                "abrangenciaTerritorial":   abrangencia_id,
+                "geometriaTracado":         geometria_id,
+                "hierarquiaAtendimento":    hierarquia_id,
+                "frotaTipoVeiculo":         frota_tipo_veiculo_id,
+                "frotaTipoPropulsao":       frota_tipo_propulsao_id,
+                "frotaUltimoOficio":        frota_ultimo_oficio_id,
+                "frotaDataOficio":          str(frotaDataOficio) if frotaDataOficio else None,
+                "observacao":               observacao,
+                "itinerarios":              [], # Será preenchido abaixo
+                "itinerarios_oficios": {
+                    "R": it_reg_oficio_id,
+                    "A1": it_a1_oficio_id,
+                    "A2": it_a2_oficio_id,
+                    "A3": it_a3_oficio_id
+                }
             }
-        }
 
-        # Processar Itinerários
-        all_itinerarios = []
-        def processar_df(df, tipo, sentido):
-            if df is not None and not df.empty:
-                for idx, row in df.iterrows():
-                    if row.get("Logradouro"):
-                        all_itinerarios.append({
-                            "tipo": tipo,
-                            "sentido": sentido,
-                            "ordem": idx,
-                            "logradouro": row["Logradouro"],
-                            "bairro": row.get("Bairro", ""),
-                            "observacao": row.get("Complemento", "")
-                        })
+            # Processar Itinerários
+            all_itinerarios = []
+            def processar_df(df, tipo, sentido):
+                if df is not None and not df.empty:
+                    for idx, row in df.iterrows():
+                        if row.get("Logradouro"):
+                            all_itinerarios.append({
+                                "tipo": tipo,
+                                "sentido": sentido,
+                                "ordem": idx,
+                                "logradouro": row["Logradouro"],
+                                "bairro": row.get("Bairro", ""),
+                                "observacao": row.get("Complemento", "")
+                            })
 
-        processar_df(df_reg_ida, "R", "0")
-        processar_df(df_reg_volta, "R", "1")
-        processar_df(df_a1_ida, "A1", "0")
-        processar_df(df_a1_volta, "A1", "1")
-        processar_df(df_a2_ida, "A2", "0")
-        processar_df(df_a2_volta, "A2", "1")
-        processar_df(df_a3_ida, "A3", "0")
-        processar_df(df_a3_volta, "A3", "1")
-        
-        dados["itinerarios"] = all_itinerarios
-
-        with st.spinner("Atualizando registros no SQLite..."):
-            sucesso, msg = atualizar_linha(linha_id, dados)
+            processar_df(df_reg_ida, "R", "0")
+            processar_df(df_reg_volta, "R", "1")
+            processar_df(df_a1_ida, "A1", "0")
+            processar_df(df_a1_volta, "A1", "1")
+            processar_df(df_a2_ida, "A2", "0")
+            processar_df(df_a2_volta, "A2", "1")
+            processar_df(df_a3_ida, "A3", "0")
+            processar_df(df_a3_volta, "A3", "1")
             
-        if sucesso:
-            st.session_state["_mensagem_sucesso"] = msg
-            st.cache_data.clear()
-            st.session_state["aba_ativa"] = "Principal"
-            st.rerun()
-        else:
-            st.error(f"❌ {msg}")
+            dados["itinerarios"] = all_itinerarios
+
+            with st.spinner("Atualizando registros no SQLite..."):
+                sucesso, msg = atualizar_linha(linha_id, dados)
+                
+            if sucesso:
+                st.session_state["_mensagem_sucesso"] = msg
+                st.cache_data.clear()
+                st.session_state["aba_ativa"] = "Principal"
+                st.rerun()
+            else:
+                st.error(f"❌ {msg}")

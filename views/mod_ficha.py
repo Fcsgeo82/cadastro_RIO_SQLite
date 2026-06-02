@@ -68,6 +68,7 @@ def render(linha_id: str):
     
     v_frota_of_html = _of_html(dados.get('frotaUltimoOficio'))
     v_frota_tipo = obter_label(refs.get('tipos_veiculo', {}), dados.get('frotaTipoVeiculo'))
+    v_frota_propulsao = obter_label(refs.get('tipos_propulsao', {}), dados.get('frotaTipoPropulsao'))
     
     v_frota_data = dados.get('frotaDataOficio') or '-'
     if "-" in v_frota_data and len(v_frota_data) == 10:
@@ -250,7 +251,7 @@ def render(linha_id: str):
             <div class="data-grid">
                 <div class="field" style="grid-column: span 6;"><span class="label">Tecnologia Autorizada:</span><span class="value">{v_frota_tipo}</span></div>
                 <div class="field" style="grid-column: span 6;"><span class="label">Ofício de Autorização:</span><span class="value">{v_frota_of_html}</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Propulsão:</span><span class="value">-</span></div>
+                <div class="field" style="grid-column: span 6;"><span class="label">Propulsão:</span><span class="value">{v_frota_propulsao}</span></div>
             </div>
         </div>
 

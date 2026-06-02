@@ -430,6 +430,7 @@ elif aba == "FichaExcluida":
         v_obs = dados.get('observacao') or '-'
         
         v_frota_tipo = obter_label(refs.get('tipos_veiculo', {}), dados.get('frotaTipoVeiculo'))
+        v_frota_propulsao = obter_label(refs.get('tipos_propulsao', {}), dados.get('frotaTipoPropulsao'))
         v_frota_of = _of_html(dados.get('frotaUltimoOficio'))
         
         v_oficio_prin = _of_html(dados.get('oficio'))
@@ -462,13 +463,15 @@ elif aba == "FichaExcluida":
                 st.markdown(v_oficio_prin, unsafe_allow_html=True)
         
         with st.expander("Informações de Frota"):
-            col1, col2, col3 = st.columns(3)
+            col1, col2, col3, col4 = st.columns(4)
             with col1:
                 st.write("**Frota Tipo Veículo:**", v_frota_tipo)
             with col2:
+                st.write("**Propulsão:**", v_frota_propulsao)
+            with col3:
                 st.write("**Frota Último Ofício:**", unsafe_allow_html=True)
                 st.markdown(v_frota_of, unsafe_allow_html=True)
-            with col3:
+            with col4:
                 st.write("**Ofício Primeiro Histórico:**", unsafe_allow_html=True)
                 st.markdown(v_oficio_prim, unsafe_allow_html=True)
         

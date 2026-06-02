@@ -7,7 +7,7 @@ import streamlit as st
 from models.db import (
     consultar_linhas, opcoes,
     carregar_areas_operacionais, carregar_operadores, carregar_tipos_sistema,
-    carregar_caracteristicas, carregar_parametros_novos, carregar_tipos_veiculo,
+    carregar_caracteristicas, carregar_parametros_novos, carregar_tipos_veiculo, carregar_tipos_propulsao,
     carregar_grupamentos, carregar_tipologia_rede, carregar_abrangencia_territorial,
     carregar_geometria_tracado, carregar_hierarquia_atendimento
 )
@@ -21,6 +21,7 @@ def _refs_consulta():
         "operadores":     opcoes(carregar_operadores()),
         "tipos_sistema":  opcoes(carregar_tipos_sistema()),
         "tipos_veiculo":  opcoes(carregar_tipos_veiculo()),
+        "tipos_propulsao": opcoes(carregar_tipos_propulsao()),
         "grupamentos":    opcoes(carregar_grupamentos()),
         "tipologia":      opcoes(carregar_tipologia_rede()),
         "abrangencia":    opcoes(carregar_abrangencia_territorial()),
@@ -70,6 +71,7 @@ def render():
     geometria_id = ""
     hierarquia_id = ""
     frota_v_id = ""
+    propulsao_id = ""
     grupamento_id = ""
 
     if is_public:
@@ -121,12 +123,16 @@ def render():
             sel_tip         = st.selectbox("Tipologia de Rede", tip_labels)
             tipologia_id    = refs["tipologia"].get(sel_tip, "")
 
-        col9, col10, col11, _ = st.columns(4)
+        col9, col10, col11, col12 = st.columns(4)
         with col9:
             tv_labels       = ["Todos"] + list(refs["tipos_veiculo"].keys())
             sel_tv          = st.selectbox("Frota Autorizada", tv_labels)
             frota_v_id      = refs["tipos_veiculo"].get(sel_tv, "")
         with col10:
+            prop_labels     = ["Todos"] + list(refs["tipos_propulsao"].keys())
+            sel_prop        = st.selectbox("Propulsão", prop_labels)
+            propulsao_id    = refs["tipos_propulsao"].get(sel_prop, "")
+        with col11:
             grup_labels     = ["Todos"] + list(refs["grupamentos"].keys())
             sel_grup        = st.selectbox("Grupamento BRS", grup_labels)
             grupamento_id   = refs["grupamentos"].get(sel_grup, "")
@@ -151,6 +157,7 @@ def render():
                 tipo_sistema_id     = tipo_sistema_id,
                 termo_geral         = filtro_geral,
                 frota_tipo_veiculo_id = frota_v_id,
+                frota_tipo_propulsao_id = propulsao_id,
                 grupamento_brs_id   = grupamento_id,
                 tipologia_id        = tipologia_id,
                 abrangencia_id      = abrangencia_id,

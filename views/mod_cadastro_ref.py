@@ -315,6 +315,24 @@ def _form_operador():
         _feedback(*_inserir("operador", row))
 
 
+def _form_tipo_propulsao():
+    st.markdown("**Campos:** Descrição do tipo de propulsão.")
+    with st.form("form_tipo_propulsao", clear_on_submit=True):
+        descricao = st.text_input("Descrição *", placeholder="Ex: Diesel, Elétrico, Híbrido")
+        submitted = st.form_submit_button("💾 Salvar", type="primary",
+                                          width='stretch')
+
+    if submitted:
+        if not descricao.strip():
+            st.error("⚠️ O campo Descrição é obrigatório.")
+            return
+        row = {
+            "tipoPropulsaoID": str(uuid.uuid4()),
+            "descricao":       descricao.strip(),
+        }
+        _feedback(*_inserir("TipoPropulsao", row))
+
+
 def _form_tipologia_rede():
     st.markdown("**Campos:** Descrição da tipologia de rede.")
     with st.form("form_tipologia", clear_on_submit=True):
@@ -441,6 +459,12 @@ TABELAS = {
         "icone":    "🚌",
         "tabela":   "TipoVeiculo",
         "pk":       "tipoVeiculoID",
+    },
+    "Tipo de Propulsão": {
+        "form":     _form_tipo_propulsao,
+        "icone":    "⚡",
+        "tabela":   "TipoPropulsao",
+        "pk":       "tipoPropulsaoID",
     },
     "Tipologia de Rede": {
         "form":     _form_tipologia_rede,

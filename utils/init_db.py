@@ -44,6 +44,7 @@ def init_db():
     "caracteristica TEXT",
     "grupamentoBRS INTEGER",
     "frotaTipoVeiculo TEXT",
+    "frotaTipoPropulsao TEXT",
     "frotaUltimoOficio TEXT",
     "frotaDataOficio TEXT",
     "observacao TEXT",
@@ -89,6 +90,10 @@ def init_db():
             "descricao TEXT",
             "codigoVeiculo INTEGER"
         ],
+        "TipoPropulsao": [
+            "tipoPropulsaoID TEXT PRIMARY KEY",
+            "descricao TEXT"
+        ],
 "ExclusaoLinha": [
     "exclusaoLinhaID TEXT PRIMARY KEY",
     "linha INTEGER",
@@ -116,6 +121,7 @@ def init_db():
     "caracteristica TEXT",
     "grupamentoBRS INTEGER",
     "frotaTipoVeiculo TEXT",
+    "frotaTipoPropulsao TEXT",
     "frotaUltimoOficio TEXT",
     "frotaDataOficio TEXT",
     "observacao TEXT",
@@ -285,6 +291,28 @@ def init_db():
         for d in data:
             cursor.execute("INSERT INTO HierarquiaAtendimento (hierarquiaID, classificacao) VALUES (?, ?)", (str(uuid.uuid4()), d))
     
+    # --- Migração: Adicionar colunas novas ---
+    cursor.execute("PRAGMA table_info(Linha)")
+    existing_cols = [row[1] for row in cursor.fetchall()]
+    for col, col_type in {"frotaTipoPropulsao": "TEXT"}.items():
+        if col not in existing_cols:
+            print(f"Migração: Adicionando coluna {col} à tabela Linha")
+            cursor.execute(f"ALTER TABLE Linha ADD COLUMN {col} {col_type}")
+
+    cursor.execute("PRAGMA table_info(LinhaExcluida)")
+    existing_cols_ex = [row[1] for row in cursor.fetchall()]
+    for col, col_type in {"frotaTipoPropulsao": "TEXT"}.items():
+        if col not in existing_cols_ex:
+            print(f"Migração: Adicionando coluna {col} à tabela LinhaExcluida")
+            cursor.execute(f"ALTER TABLE LinhaExcluida ADD COLUMN {col} {col_type}")
+
+    # Popular TipoPropulsao se vazio
+    cursor.execute("SELECT COUNT(*) FROM TipoPropulsao")
+    if cursor.fetchone()[0] == 0:
+        data = ["Diesel", "Elétrico", "Híbrido", "GNV", "Gás", "Micro-ônibus elétrico"]
+        for d in data:
+            cursor.execute("INSERT INTO TipoPropulsao (tipoPropulsaoID, descricao) VALUES (?, ?)", (str(uuid.uuid4()), d))
+
     conn.commit()
     conn.close()
     print("-" * 30)

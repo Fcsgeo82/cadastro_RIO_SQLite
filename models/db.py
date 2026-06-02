@@ -130,6 +130,18 @@ def carregar_tipos_veiculo() -> pd.DataFrame:
     return df.rename(columns={"tipoVeiculoID": "id", "descricao": "label"})
 
 
+@st.cache_data(show_spinner=False)
+def carregar_tipos_propulsao() -> pd.DataFrame:
+    df = _query_df(f"""
+        SELECT tipoPropulsaoID, descricao
+        FROM TipoPropulsao
+        ORDER BY descricao
+    """)
+    if df.empty:
+        return df
+    return df.rename(columns={"tipoPropulsaoID": "id", "descricao": "label"})
+
+
 # Deprecated: carregar_parametros e carregar_areas_geograficas removidos.
 
 
@@ -256,6 +268,7 @@ def inserir_linha(dados: dict) -> tuple[bool, str]:
         "caracteristica":        dados.get("caracteristica") or None,
         "grupamentoBRS":         dados.get("grupamentoBRS"),
         "frotaTipoVeiculo":      dados.get("frotaTipoVeiculo") or None,
+        "frotaTipoPropulsao":    dados.get("frotaTipoPropulsao") or None,
         "frotaUltimoOficio":     dados.get("frotaUltimoOficio") or None,
         "frotaDataOficio":       dados.get("frotaDataOficio") or None,
         "observacao":            dados.get("observacao", "").strip() or None,
@@ -313,6 +326,7 @@ def consultar_linhas(
     caracteristica_id: str = "",
     parametro_id: str = "",
     frota_tipo_veiculo_id: str = "",
+    frota_tipo_propulsao_id: str = "",
     grupamento_brs_id: str = "",
     tipologia_id: str = "",
     abrangencia_id: str = "",
@@ -344,6 +358,9 @@ def consultar_linhas(
     if frota_tipo_veiculo_id:
         condicoes.append("l.frotaTipoVeiculo = ?")
         params.append(frota_tipo_veiculo_id)
+    if frota_tipo_propulsao_id:
+        condicoes.append("l.frotaTipoPropulsao = ?")
+        params.append(frota_tipo_propulsao_id)
     if grupamento_brs_id:
         condicoes.append("l.grupamentoBRS = ?")
         params.append(grupamento_brs_id)
@@ -414,8 +431,9 @@ def consultar_linhas(
         LEFT JOIN TipoSistema            ts ON l.tipoSistema     = ts.tipoSistemaID
         LEFT JOIN Parametro              p  ON l.parametro_novo  = p.parametroID
         LEFT JOIN Caracteristica         c  ON l.caracteristica  = c.caracteristicaID
-        LEFT JOIN TipoVeiculo            tv ON l.frotaTipoVeiculo = tv.tipoVeiculoID
-        LEFT JOIN TipologiaRede          tr ON l.tipologiaRede   = tr.tipologiaID
+        LEFT JOIN TipoVeiculo            tv ON l.frotaTipoVeiculo   = tv.tipoVeiculoID
+        LEFT JOIN TipoPropulsao          tp ON l.frotaTipoPropulsao = tp.tipoPropulsaoID
+        LEFT JOIN TipologiaRede          tr ON l.tipologiaRede     = tr.tipologiaID
         LEFT JOIN AbrangenciaTerritorial at ON l.abrangenciaTerritorial = at.abrangenciaID
         LEFT JOIN GeometriaTracado       gt ON l.geometriaTracado = gt.geometriaID
         LEFT JOIN HierarquiaAtendimento  ha ON l.hierarquiaAtendimento = ha.hierarquiaID
@@ -531,6 +549,7 @@ def atualizar_linha(linha_id: str, dados: dict) -> tuple[bool, str]:
         "caracteristica":        dados.get("caracteristica") or None,
         "grupamentoBRS":         dados.get("grupamentoBRS"),
         "frotaTipoVeiculo":      dados.get("frotaTipoVeiculo") or None,
+        "frotaTipoPropulsao":    dados.get("frotaTipoPropulsao") or None,
         "frotaUltimoOficio":     dados.get("frotaUltimoOficio") or None,
         "frotaDataOficio":       dados.get("frotaDataOficio") or None,
         "observacao":            dados.get("observacao", "").strip() or None,
@@ -594,7 +613,7 @@ def excluir_linha(linha_id: str, oficio_exclusao: str = None) -> tuple[bool, str
         linhas_cols = ["linhaID", "numeroLinha", "dataCriacaoLinha", "servico", "operador", "vista", "via",
                        "areaOperacional", "oficio", "oficioprimeiroHistorico", "oficioUltimaAlteracao",
                        "tipoSistema", "kmIDA", "kmVOLTA", "parametro_novo", "caracteristica", "grupamentoBRS",
-                       "frotaTipoVeiculo", "frotaUltimoOficio", "frotaDataOficio", "observacao", "dataCadastro",
+                       "frotaTipoVeiculo", "frotaTipoPropulsao", "frotaUltimoOficio", "frotaDataOficio", "observacao", "dataCadastro",
                        "ultimaAtualizacao", "areaGeografica", "classificacaoEspacial", "parametro"]
         
         valores = [linha_dict.get(c) for c in linhas_cols]

@@ -11,7 +11,7 @@ from models.db import (
     carregar_servicos, carregar_operadores,
     carregar_areas_operacionais, 
     carregar_parametros_novos, carregar_caracteristicas,
-    carregar_tipos_sistema, carregar_tipos_veiculo,
+    carregar_tipos_sistema, carregar_tipos_veiculo, carregar_tipos_propulsao,
     carregar_grupamentos, carregar_oficios, carregar_assuntos_oficios,
     carregar_tipologia_rede, carregar_abrangencia_territorial,
     carregar_geometria_tracado, carregar_hierarquia_atendimento
@@ -29,6 +29,7 @@ def _carregar_todas_referencias():
         "areas_op":        opcoes(carregar_areas_operacionais()),
         "tipos_sistema":   opcoes(carregar_tipos_sistema()),
         "tipos_veiculo":   opcoes(carregar_tipos_veiculo()),
+        "tipos_propulsao": opcoes(carregar_tipos_propulsao()),
         "grupamentos":     opcoes(carregar_grupamentos()),
         "oficios":         opcoes(df_of),
         "datas_oficios":   dict(zip(df_of["id"], df_of["dataOficio"])) if not df_of.empty else {},
@@ -162,14 +163,16 @@ def render():
         st.divider()
         st.markdown("#### 🚍 Frota")
 
-        col17, col18, col19 = st.columns(3)
+        col17, col18, col19, col20 = st.columns(4)
         with col17:
             frota_tipo_veiculo_id  = _selectbox("Tipo de Veículo da Frota", refs["tipos_veiculo"])
         with col18:
+            frota_tipo_propulsao_id = _selectbox("Propulsão", refs["tipos_propulsao"])
+        with col19:
             frota_ultimo_oficio_id = _selectbox("Ofício de Autorização da Frota", refs["oficios"])
             if frota_ultimo_oficio_id:
                 st.caption(f"**Assunto:** {refs['assuntos_oficios'].get(frota_ultimo_oficio_id, 'Sem assunto')}")
-        with col19:
+        with col20:
             frotaDataOficio = st.date_input("Data do Ofício da Frota", value=None)
 
         # ── Itinerários ──────────────────────────────────────────
@@ -256,6 +259,8 @@ def render():
             "parametro_novo":           None,
             "caracteristica":           None,
             "grupamentoBRS":            grupamento_label,
+            "frotaTipoVeiculo":         frota_tipo_veiculo_id,
+            "frotaTipoPropulsao":       frota_tipo_propulsao_id,
             "frotaUltimoOficio":        frota_ultimo_oficio_id,
             "frotaDataOficio":          str(frotaDataOficio) if frotaDataOficio else None,
             "observacao":               observacao,
