@@ -33,7 +33,7 @@ def render(linha_id: str):
     gtfs = load_gtfs_data(v_linha)
     is_ativa = gtfs is not None
     v_gtfs_status = "Ativa" if is_ativa else "Inativa"
-    v_gtfs_class = "status-ativa" if is_ativa else "status-inativa"
+    v_gtfs_class = "ficha-status-ativa" if is_ativa else "ficha-status-inativa"
     v_servico = obter_label(refs.get('servicos', {}), dados.get('servico'))
     v_vista = dados.get('vista', '-')
     v_via = dados.get('via') or '-'
@@ -90,7 +90,10 @@ def render(linha_id: str):
             return "<tr><td colspan='3' style='color:#888; font-style:italic;'>Sem registros</td></tr>"
         rows = ""
         for p in pts:
-            rows += f"<tr><td>{p.get('logradouro', '')}</td><td>{p.get('observacao', '')}</td><td>{p.get('bairro', '')}</td></tr>"
+            logradouro = p.get('logradouro') or '-'
+            observacao = p.get('observacao') or '-'
+            bairro = p.get('bairro') or '-'
+            rows += f"<tr><td>{logradouro}</td><td>{observacao}</td><td>{bairro}</td></tr>"
         return rows
 
     tipos_it = sorted(list(set(it.get("tipo", "R") for it in it_lista)))
@@ -105,20 +108,20 @@ def render(linha_id: str):
         of_raw_it = _of_html(of_id_it)
         
         itinerarios_html += f"""
-        <div class="section-header">{nome_it}</div>
-        <div class="data-grid">
-            <div class="field" style="grid-column: span 6;"><span class="label">Tipo de Operação:</span><span class="value">{v_tipo}</span></div>
-            <div class="field" style="grid-column: span 6;"><span class="label">Ofício de Autorização:</span><span class="value">{of_raw_it}</span></div>
+        <div class="ficha-section-header">{nome_it}</div>
+        <div class="ficha-grid">
+            <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Tipo de Operação:</span><span class="ficha-value">{v_tipo}</span></div>
+            <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Ofício de Autorização:</span><span class="ficha-value">{of_raw_it}</span></div>
         </div>
-        
-        <div class="it-sub-header">Itinerário de Ida</div>
-        <table class="it-table">
+
+        <div class="ficha-it-header">Itinerário de Ida</div>
+        <table class="ficha-it-table">
             <thead><tr><th>Logradouro</th><th>Complemento</th><th>Bairro</th></tr></thead>
             <tbody>{_gerar_linhas_itinerario(t, "0")}</tbody>
         </table>
-        
-        <div class="it-sub-header">Itinerário de Volta</div>
-        <table class="it-table">
+
+        <div class="ficha-it-header">Itinerário de Volta</div>
+        <table class="ficha-it-table">
             <thead><tr><th>Logradouro</th><th>Complemento</th><th>Bairro</th></tr></thead>
             <tbody>{_gerar_linhas_itinerario(t, "1")}</tbody>
         </table>
@@ -127,158 +130,167 @@ def render(linha_id: str):
     # --- Imagem do Logo ---
     logo_img = render_logo("140px")
 
-    # --- HTML DOC ---
-    html_doc = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-    <meta charset="UTF-8">
-    <style>
+    # --- CSS da ficha (escopado em .ficha-root) ---
+    ficha_css = """
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
-    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-    body {{ font-family: 'Roboto', sans-serif; font-size: 11px; color: #000; background: #f0f2f5; }}
-    .ficha-container {{
+    .ficha-root * { margin: 0; padding: 0; box-sizing: border-box; }
+    .ficha-root { font-family: 'Roboto', sans-serif; font-size: 11px; color: #000; background: #f0f2f5; }
+    .ficha-root .ficha-container {
         max-width: 1000px;
         margin: 20px auto;
         background: white;
         padding-bottom: 60px;
         box-shadow: 0 0 30px rgba(0,0,0,0.15);
         border-radius: 8px;
-    }}
-    .header-rio {{ background: #ffdc00; height: 100px; display: flex; align-items: center; padding: 0 50px; }}
-    .header-rio .ficha-label {{
+    }
+    .ficha-root .ficha-header { background: #ffdc00; height: 100px; display: flex; align-items: center; padding: 0 50px; }
+    .ficha-root .ficha-header .ficha-title {
         font-weight: 900;
         font-size: 24px;
         letter-spacing: 1px;
         margin-left: 30px;
-    }}
-    .section {{ margin: 30px 50px; }}
-    .section-header {{ border-bottom: 3px solid #000; font-weight: 900; font-size: 14px; padding-bottom: 5px; margin-bottom: 15px; text-transform: uppercase; }}
-    .data-grid {{ display: grid; grid-template-columns: repeat(12, 1fr); gap: 5px; margin-bottom: 12px; }}
-    .field {{ display: flex; flex-direction: row; gap: 4px; align-items: baseline; }}
-    .label {{ font-weight: 700; white-space: nowrap; font-size: 11px; }}
-    .value {{ font-weight: 400; font-size: 11px; }}
-    .area-badge {{ color: white; padding: 2px 30px; font-weight: bold; font-size: 11px; margin-left: 10px; border-radius: 0px; text-transform: lowercase; }}
-    .status-badge {{ color: white; padding: 2px 8px; font-weight: bold; font-size: 9px; border-radius: 4px; text-transform: uppercase; margin-left: 5px; display: inline-block; }}
-    .status-ativa {{ background-color: #2e7d32; }}
-    .status-inativa {{ background-color: #c62828; }}
-    .it-sub-header {{ font-weight: 700; margin: 10px 0 5px 0; font-size: 11px; text-decoration: none; }}
-    .it-table {{ width: 100%; border-collapse: collapse; margin-bottom: 15px; }}
-    .it-table th {{ text-align: left; font-weight: 700; padding: 4px 0; border-bottom: 1px solid #eee; }}
-    .it-table td {{ padding: 4px 0; border-bottom: 1px dotted #ccc; vertical-align: top; width: 33.33%; }}
-    .btn-print-box {{ position: fixed; bottom: 30px; right: 30px; z-index: 999; }}
-    .btn-print {{
+    }
+    .ficha-root .ficha-section { margin: 30px 50px; }
+    .ficha-root .ficha-section-header { border-bottom: 3px solid #000; font-weight: 900; font-size: 14px; padding-bottom: 5px; margin-bottom: 15px; text-transform: uppercase; }
+    .ficha-root .ficha-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 5px; margin-bottom: 12px; }
+    .ficha-root .ficha-field { display: flex; flex-direction: row; gap: 4px; align-items: baseline; }
+    .ficha-root .ficha-label { font-weight: 700; white-space: nowrap; font-size: 11px; }
+    .ficha-root .ficha-value { font-weight: 400; font-size: 11px; }
+    .ficha-root .ficha-area-badge { color: white; padding: 2px 30px; font-weight: bold; font-size: 11px; margin-left: 10px; border-radius: 0px; text-transform: lowercase; }
+    .ficha-root .ficha-status-badge { color: white; padding: 2px 8px; font-weight: bold; font-size: 9px; border-radius: 4px; text-transform: uppercase; margin-left: 5px; display: inline-block; }
+    .ficha-root .ficha-status-ativa { background-color: #2e7d32; }
+    .ficha-root .ficha-status-inativa { background-color: #c62828; }
+    .ficha-root .ficha-it-header { font-weight: 700; margin: 10px 0 5px 0; font-size: 11px; text-decoration: none; }
+    .ficha-root .ficha-it-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+    .ficha-root .ficha-it-table th { text-align: left; font-weight: 700; padding: 4px 0; border-bottom: 1px solid #eee; }
+    .ficha-root .ficha-it-table td { padding: 4px 0; border-bottom: 1px dotted #ccc; vertical-align: top; width: 33.33%; }
+    .ficha-root .ficha-btn-box { position: fixed; bottom: 30px; right: 30px; z-index: 999; }
+    .ficha-root .ficha-btn {
         background: #000; color: #ffdc00; border: none; padding: 12px 20px; border-radius: 50px;
         cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 10px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    }}
-    @page {{
+    }
+    @page {
         size: A4;
         margin: 25mm 15mm 30mm 15mm;
-        @bottom-center {{ content: counter(page) " / " counter(pages); font-size: 9px; font-family: 'Roboto', sans-serif; color: #666; }}
-    }}
-    @page :first {{
+        @bottom-center { content: counter(page) " / " counter(pages); font-size: 9px; font-family: 'Roboto', sans-serif; color: #666; }
+    }
+    @page :first {
         margin: 15mm 15mm 25mm 15mm;
-        @bottom-center {{ content: counter(page) " / " counter(pages); font-size: 9px; font-family: 'Roboto', sans-serif; color: #666; }}
-    }}
-    @media print {{
-        .no-print {{ display: none !important; }}
-        body {{ background: white; padding: 0; }}
-        .ficha-container {{ box-shadow: none; width: 100%; max-width: none; margin: 0; padding: 0; border-radius: 0; }}
-        .section {{ page-break-inside: avoid; }}
-        .header-rio, .status-ativa, .status-inativa, .area-badge {{
+        @bottom-center { content: counter(page) " / " counter(pages); font-size: 9px; font-family: 'Roboto', sans-serif; color: #666; }
+    }
+    @media print {
+        .ficha-no-print { display: none !important; }
+        .ficha-root .ficha-container { box-shadow: none; width: 100%; max-width: none; margin: 0; padding: 0; border-radius: 0; }
+        .ficha-root .ficha-section { page-break-inside: avoid; }
+        .ficha-root .ficha-header, .ficha-root .ficha-status-ativa, .ficha-root .ficha-status-inativa, .ficha-root .ficha-area-badge {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-        }}
-    }}
-    </style>
+        }
+    }
+    """
+
+    # --- BODY da ficha (com classes com prefixo ficha-) ---
+    ficha_body = f"""
+    <div class="ficha-root">
+        <div class="ficha-container">
+            <div class="ficha-header">
+                <div class="ficha-logo">{logo_img}</div>
+                <div class="ficha-title">FICHA CADASTRAL</div>
+            </div>
+
+            <!-- INFORMAÇÕES GERAIS -->
+            <div class="ficha-section">
+                <div class="ficha-section-header">INFORMAÇÕES GERAIS</div>
+                <div class="ficha-grid">
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Linha:</span><span class="ficha-value">{v_linha}</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Serviço:</span><span class="ficha-value">{v_servico}</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Vista:</span><span class="ficha-value">{v_vista}</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Grupamento BRS:</span><span class="ficha-value">{v_grupamento}</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Via:</span><span class="ficha-value">{v_via}</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Data de Criação:</span><span class="ficha-value">{v_criacao}</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Extensão de ida:</span><span class="ficha-value">{v_km_ida} km</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Extensão de volta:</span><span class="ficha-value">{v_km_volta} km</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Plano Operacional (GTFS):</span><span class="ficha-status-badge {v_gtfs_class}">{v_gtfs_status}</span></div>
+                    <div class="ficha-field" style="grid-column: span 12;"><span class="ficha-label">Observação:</span><span class="ficha-value">{v_obs}</span></div>
+                </div>
+            </div>
+
+            <!-- OPERADOR RESPONSÁVEL -->
+            <div class="ficha-section">
+                <div class="ficha-section-header">OPERADOR RESPONSÁVEL</div>
+                <div class="ficha-grid">
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Lote:</span><span class="ficha-value">-</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Termo:</span><span class="ficha-value">-</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Razão Social:</span><span class="ficha-value">{v_operador}</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Nome Fantasia:</span><span class="ficha-value">{v_operador}</span></div>
+                    <div class="ficha-field" style="grid-column: span 12;">
+                        <span class="ficha-label">Área Operacional:</span>
+                        <span class="ficha-area-badge" style="background:{v_cor_area}">{v_area_op}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ficha-section">
+                <div class="ficha-section-header">CLASSIFICAÇÃO</div>
+                <div class="ficha-grid">
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Hierarquia do Atendimento:</span><span class="ficha-value">{v_hierarquia}</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Abrangência Territorial:</span><span class="ficha-value">{v_abrangencia}</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Tipologia de Rede:</span><span class="ficha-value">{v_tipologia}</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Geometria:</span><span class="ficha-value">{v_geometria}</span></div>
+                </div>
+            </div>
+
+            <!-- DADOS PROCESSUAIS -->
+            <div class="ficha-section">
+                <div class="ficha-section-header">DADOS PROCESSUAIS</div>
+                <div class="ficha-grid">
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Ofício de Criação:</span><span class="ficha-value">{v_oficio_prin}</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Início de Vigência:</span><span class="ficha-value">{v_criacao}</span></div>
+                    <div class="ficha-field" style="grid-column: span 12; flex-direction: column; align-items: flex-start; gap: 2px;">
+                        <div>
+                            <span class="ficha-label">Ofício de Última Alteração:</span>
+                            <span class="ficha-value">{v_oficio_ult}</span>
+                        </div>
+                        <div style="margin-top: 2px;">
+                            <span class="ficha-label" style="font-weight: 500; color: #555;">Assunto:</span>
+                            <span class="ficha-value" style="font-style: italic;">{v_oficio_ult_assunto}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FROTA AUTORIZADA -->
+            <div class="ficha-section">
+                <div class="ficha-section-header">FROTA AUTORIZADA</div>
+                <div class="ficha-grid">
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Tecnologia Autorizada:</span><span class="ficha-value">{v_frota_tipo}</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Ofício de Autorização:</span><span class="ficha-value">{v_frota_of_html}</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Propulsão:</span><span class="ficha-value">{v_frota_propulsao}</span></div>
+                </div>
+            </div>
+
+            <!-- ITINERÁRIOS -->
+            <div class="ficha-section">
+                {itinerarios_html}
+            </div>
+        </div>
+    </div>
+    """
+
+    # --- HTML completo para impressão (nova aba) ---
+    html_doc = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="UTF-8">
+    <style>{ficha_css}</style>
     </head>
     <body>
-    <div class="btn-print-box no-print">
-        <button class="btn-print" onclick="window.print()"><span>🖨️</span> Imprimir Ficha</button>
+    <div class="ficha-btn-box ficha-no-print">
+        <button class="ficha-btn" onclick="window.print()"><span>🖨️</span> Imprimir Ficha</button>
     </div>
-    <div class="ficha-container">
-        <div class="header-rio">
-            <div class="logo-rio">{logo_img}</div>
-            <div class="ficha-label">FICHA CADASTRAL</div>
-        </div>
-        
-        <!-- INFORMAÇÕES GERAIS -->
-        <div class="section">
-            <div class="section-header">INFORMAÇÕES GERAIS</div>
-            <div class="data-grid">
-                <div class="field" style="grid-column: span 6;"><span class="label">Linha:</span><span class="value">{v_linha}</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Serviço:</span><span class="value">{v_servico}</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Vista:</span><span class="value">{v_vista}</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Grupamento BRS:</span><span class="value">{v_grupamento}</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Via:</span><span class="value">{v_via}</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Data de Criação:</span><span class="value">{v_criacao}</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Extensão de ida:</span><span class="value">{v_km_ida} km</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Extensão de volta:</span><span class="value">{v_km_volta} km</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Plano Operacional (GTFS):</span><span class="status-badge {v_gtfs_class}">{v_gtfs_status}</span></div>
-                <div class="field" style="grid-column: span 12;"><span class="label">Observação:</span><span class="value">{v_obs}</span></div>
-            </div>
-        </div>
-
-        <!-- OPERADOR RESPONSÁVEL -->
-        <div class="section">
-            <div class="section-header">OPERADOR RESPONSÁVEL</div>
-            <div class="data-grid">
-                <div class="field" style="grid-column: span 6;"><span class="label">Lote:</span><span class="value">-</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Termo:</span><span class="value">-</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Razão Social:</span><span class="value">{v_operador}</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Nome Fantasia:</span><span class="value">{v_operador}</span></div>
-                <div class="field" style="grid-column: span 12;">
-                    <span class="label">Área Operacional:</span>
-                    <span class="area-badge" style="background:{v_cor_area}">{v_area_op}</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">CLASSIFICAÇÃO</div>
-            <div class="data-grid">
-                <div class="field" style="grid-column: span 6;"><span class="label">Hierarquia do Atendimento:</span><span class="value">{v_hierarquia}</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Abrangência Territorial:</span><span class="value">{v_abrangencia}</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Tipologia de Rede:</span><span class="value">{v_tipologia}</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Geometria:</span><span class="value">{v_geometria}</span></div>
-            </div>
-        </div>
-
-        <!-- DADOS PROCESSUAIS -->
-        <div class="section">
-            <div class="section-header">DADOS PROCESSUAIS</div>
-            <div class="data-grid">
-                <div class="field" style="grid-column: span 6;"><span class="label">Ofício de Criação:</span><span class="value">{v_oficio_prin}</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Início de Vigência:</span><span class="value">{v_criacao}</span></div>
-                <div class="field" style="grid-column: span 12; flex-direction: column; align-items: flex-start; gap: 2px;">
-                    <div>
-                        <span class="label">Ofício de Última Alteração:</span>
-                        <span class="value">{v_oficio_ult}</span>
-                    </div>
-                    <div style="margin-top: 2px;">
-                        <span class="label" style="font-weight: 500; color: #555;">Assunto:</span>
-                        <span class="value" style="font-style: italic;">{v_oficio_ult_assunto}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- FROTA AUTORIZADA -->
-        <div class="section">
-            <div class="section-header">FROTA AUTORIZADA</div>
-            <div class="data-grid">
-                <div class="field" style="grid-column: span 6;"><span class="label">Tecnologia Autorizada:</span><span class="value">{v_frota_tipo}</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Ofício de Autorização:</span><span class="value">{v_frota_of_html}</span></div>
-                <div class="field" style="grid-column: span 6;"><span class="label">Propulsão:</span><span class="value">{v_frota_propulsao}</span></div>
-            </div>
-        </div>
-
-        <!-- ITINERÁRIOS -->
-        <div class="section">
-            {itinerarios_html}
-        </div>
-    </div>
+    {ficha_body}
     <script>setTimeout(function(){{ window.print(); }}, 600);</script>
     </body>
     </html>
@@ -317,8 +329,8 @@ text-decoration:none;font-weight:bold;font-size:14px;}}
 </body></html>'''
         components.html(print_html, height=80)
 
-    iframe_html = f'<iframe src="data:text/html;base64,{b64_print}" style="width:100%;height:1000px;border:none;"></iframe>'
-    st.markdown(iframe_html, unsafe_allow_html=True)
+    ficha_preview_html = f'<style>{ficha_css}</style>{ficha_body}'
+    st.html(ficha_preview_html)
 
     # ── SEÇÃO GTFS ───────────────────────────────────────────
     st.write("")
