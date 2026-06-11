@@ -30,6 +30,9 @@ Thumbs.db
 # Banco de dados
 database_RIO.db
 
+# GTFS
+*.zip
+
 #Outros
 logo_rio.svg
 populate_initial_logs.py
@@ -37,3 +40,4 @@ init_db_dados_faker.py
 AGENTS.md
 CAPABILITIES_AND_AGENTS.md
 workflow.md
+.opencode_chats/
