@@ -122,7 +122,15 @@ def render(linha_id: str):
 
         col11, col12 = st.columns(2)
         with col11:
-            tipologia_id = _selectbox("Tipologia de Rede", refs.get("tipologia", {}), dados_bd.get("tipologiaRede"))
+            valor_db = dados_bd.get("tipologiaRede") or ""
+            ids_db = [x.strip() for x in valor_db.split(",") if x.strip()]
+            opcoes_tipologia = refs.get("tipologia", {})
+            default_chaves = []
+            for label, id_val in opcoes_tipologia.items():
+                if str(id_val) in ids_db:
+                    default_chaves.append(label)
+            dias_op_selecionados = st.multiselect("Dias de Operação", list(opcoes_tipologia.keys()), default=default_chaves)
+            tipologia_id = ",".join([opcoes_tipologia[d] for d in dias_op_selecionados]) if dias_op_selecionados else None
         with col12:
             abrangencia_id   = _selectbox("Abrangência Territorial", refs.get("abrangencia", {}), dados_bd.get("abrangenciaTerritorial"))
         
@@ -210,28 +218,22 @@ def render(linha_id: str):
             df_reg_volta = _itinerario_editor_edicao("Volta", "edit_reg_volta", _load_itinerario_df(it_lista, "R", "1"))
                 
         with tabA1:
-            it_a1_oficio_db = next((it.get("oficio") for it in it_lista if it.get("tipo") == "A1" or it.get("tipo") == "A"), None)
-            it_a1_oficio_id = _selectbox("Ofício de Autorização (Alt 1)", refs.get("oficios", {}), it_a1_oficio_db)
-            if it_a1_oficio_id:
-                 st.caption(f"**Assunto:** {refs.get('assuntos_oficios', {}).get(it_a1_oficio_id, 'Sem assunto')}")
+            it_a1_desc_db = next((it.get("oficio") for it in it_lista if it.get("tipo") == "A1" or it.get("tipo") == "A"), "") or ""
+            it_a1_descricao = st.text_input("Descrição (Alt 1)", value=it_a1_desc_db, placeholder="Ex: Via Av. Brasil, etc.")
             df_a1_ida = _itinerario_editor_edicao("Ida", "edit_a1_ida", _load_itinerario_df(it_lista, "A1" if any(it.get("tipo")=="A1" for it in it_lista) else "A", "0"))
             st.write("") # Espaçador
             df_a1_volta = _itinerario_editor_edicao("Volta", "edit_a1_volta", _load_itinerario_df(it_lista, "A1" if any(it.get("tipo")=="A1" for it in it_lista) else "A", "1"))
 
         with tabA2:
-            it_a2_oficio_db = next((it.get("oficio") for it in it_lista if it.get("tipo") == "A2"), None)
-            it_a2_oficio_id = _selectbox("Ofício de Autorização (Alt 2)", refs.get("oficios", {}), it_a2_oficio_db)
-            if it_a2_oficio_id:
-                 st.caption(f"**Assunto:** {refs.get('assuntos_oficios', {}).get(it_a2_oficio_id, 'Sem assunto')}")
+            it_a2_desc_db = next((it.get("oficio") for it in it_lista if it.get("tipo") == "A2"), "") or ""
+            it_a2_descricao = st.text_input("Descrição (Alt 2)", value=it_a2_desc_db, placeholder="Ex: Via Linha Amarela, etc.")
             df_a2_ida = _itinerario_editor_edicao("Ida", "edit_a2_ida", _load_itinerario_df(it_lista, "A2", "0"))
             st.write("") # Espaçador
             df_a2_volta = _itinerario_editor_edicao("Volta", "edit_a2_volta", _load_itinerario_df(it_lista, "A2", "1"))
 
         with tabA3:
-            it_a3_oficio_db = next((it.get("oficio") for it in it_lista if it.get("tipo") == "A3"), None)
-            it_a3_oficio_id = _selectbox("Ofício de Autorização (Alt 3)", refs.get("oficios", {}), it_a3_oficio_db)
-            if it_a3_oficio_id:
-                 st.caption(f"**Assunto:** {refs.get('assuntos_oficios', {}).get(it_a3_oficio_id, 'Sem assunto')}")
+            it_a3_desc_db = next((it.get("oficio") for it in it_lista if it.get("tipo") == "A3"), "") or ""
+            it_a3_descricao = st.text_input("Descrição (Alt 3)", value=it_a3_desc_db, placeholder="Ex: Via Túnel Rebouças, etc.")
             df_a3_ida = _itinerario_editor_edicao("Ida", "edit_a3_ida", _load_itinerario_df(it_lista, "A3", "0"))
             st.write("") # Espaçador
             df_a3_volta = _itinerario_editor_edicao("Volta", "edit_a3_volta", _load_itinerario_df(it_lista, "A3", "1"))
@@ -268,15 +270,6 @@ def render(linha_id: str):
                 
             if it_reg_oficio_id and str(it_reg_oficio_id) != str(it_reg_oficio_db or ""):
                 oficios_alterados.append(str(it_reg_oficio_id))
-
-            if it_a1_oficio_id and str(it_a1_oficio_id) != str(it_a1_oficio_db or ""):
-                oficios_alterados.append(str(it_a1_oficio_id))
-
-            if it_a2_oficio_id and str(it_a2_oficio_id) != str(it_a2_oficio_db or ""):
-                oficios_alterados.append(str(it_a2_oficio_id))
-
-            if it_a3_oficio_id and str(it_a3_oficio_id) != str(it_a3_oficio_db or ""):
-                oficios_alterados.append(str(it_a3_oficio_id))
 
             if oficios_alterados:
                 # Achar o ofício mais recente entre os alterados
@@ -319,9 +312,9 @@ def render(linha_id: str):
                 "itinerarios":              [], # Será preenchido abaixo
                 "itinerarios_oficios": {
                     "R": it_reg_oficio_id,
-                    "A1": it_a1_oficio_id,
-                    "A2": it_a2_oficio_id,
-                    "A3": it_a3_oficio_id
+                    "A1": it_a1_descricao,
+                    "A2": it_a2_descricao,
+                    "A3": it_a3_descricao
                 }
             }
 

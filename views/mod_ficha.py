@@ -105,13 +105,18 @@ def render(linha_id: str):
     for t in tipos_it:
         nome_it = "ITINERÁRIO REGULAR" if t == "R" else f"ITINERÁRIO ALTERNATIVO ({t})"
         of_id_it = next((it.get("oficio") for it in it_lista if it.get("tipo") == t), None)
-        of_raw_it = _of_html(of_id_it)
+        if t == "R":
+            of_raw_it = _of_html(of_id_it)
+            label_autorizacao = "Ofício de Autorização"
+        else:
+            of_raw_it = of_id_it or "-"
+            label_autorizacao = "Descrição"
         
         itinerarios_html += f"""
         <div class="ficha-section-header">{nome_it}</div>
         <div class="ficha-grid">
             <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Tipo de Operação:</span><span class="ficha-value">{v_tipo}</span></div>
-            <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Ofício de Autorização:</span><span class="ficha-value">{of_raw_it}</span></div>
+            <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">{label_autorizacao}:</span><span class="ficha-value">{of_raw_it}</span></div>
         </div>
 
         <div class="ficha-it-header">Itinerário de Ida</div>
@@ -236,7 +241,7 @@ def render(linha_id: str):
                 <div class="ficha-grid">
                     <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Hierarquia do Atendimento:</span><span class="ficha-value">{v_hierarquia}</span></div>
                     <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Abrangência Territorial:</span><span class="ficha-value">{v_abrangencia}</span></div>
-                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Tipologia de Rede:</span><span class="ficha-value">{v_tipologia}</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Dias de Operação:</span><span class="ficha-value">{v_tipologia}</span></div>
                     <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Geometria:</span><span class="ficha-value">{v_geometria}</span></div>
                 </div>
             </div>

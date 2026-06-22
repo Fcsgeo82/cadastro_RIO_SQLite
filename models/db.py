@@ -46,8 +46,11 @@ def carregar_servicos() -> pd.DataFrame:
     if df.empty:
         return df
     # No SQLite, fillna pode ser feito via COALESCE ou no pandas
-    df["Prefixo"] = df["Prefixo"].fillna("")
-    df["label"] = df["Prefixo"].str.strip() + " — " + df["descricao"].str.strip()
+    df["Prefixo"] = df["Prefixo"].fillna("").str.strip()
+    df["label"] = df.apply(
+        lambda r: f"{r['Prefixo']} — {r['descricao'].strip()}" if r["Prefixo"] else r["descricao"].strip(),
+        axis=1
+    )
     return df[["servicoID", "label"]].rename(columns={"servicoID": "id"})
 
 

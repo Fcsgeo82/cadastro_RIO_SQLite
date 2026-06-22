@@ -23,6 +23,8 @@ def _carregar_todas_referencias():
     # Cache refresh: 2026-04-08 19:10
     """Carrega todas as tabelas de referência de uma vez (cache 5 min)."""
     df_of = carregar_oficios()
+    tipologia_dict = opcoes(carregar_tipologia_rede())
+    tipologia_dict.pop("Noturna", None)
     return {
         "servicos":        opcoes(carregar_servicos()),
         "operadores":      opcoes(carregar_operadores()),
@@ -34,7 +36,7 @@ def _carregar_todas_referencias():
         "oficios":         opcoes(df_of),
         "datas_oficios":   dict(zip(df_of["id"], df_of["dataOficio"])) if not df_of.empty else {},
         "assuntos_oficios": carregar_assuntos_oficios(),
-        "tipologia":       opcoes(carregar_tipologia_rede()),
+        "tipologia":       tipologia_dict,
         "abrangencia":     opcoes(carregar_abrangencia_territorial()),
         "geometria":       opcoes(carregar_geometria_tracado()),
         "hierarquia":      opcoes(carregar_hierarquia_atendimento()),
@@ -128,7 +130,8 @@ def render():
 
         col11, col12 = st.columns(2)
         with col11:
-            tipologia_id = _selectbox("Tipologia de Rede", refs["tipologia"])
+            dias_op_selecionados = st.multiselect("Dias de Operação", list(refs["tipologia"].keys()))
+            tipologia_id = ",".join([refs["tipologia"][d] for d in dias_op_selecionados]) if dias_op_selecionados else None
         with col12:
             abrangencia_id   = _selectbox("Abrangência Territorial", refs["abrangencia"])
         
@@ -191,25 +194,19 @@ def render():
             df_reg_volta = _itinerario_editor("Volta", "reg_volta")
                 
         with tabA1:
-            it_a1_oficio_id = _selectbox("Ofício de Autorização (Alt 1)", refs["oficios"])
-            if it_a1_oficio_id:
-                 st.caption(f"**Assunto:** {refs['assuntos_oficios'].get(it_a1_oficio_id, 'Sem assunto')}")
+            it_a1_descricao = st.text_input("Descrição (Alt 1)", placeholder="Ex: Via Av. Brasil, etc.")
             df_a1_ida = _itinerario_editor("Ida", "a1_ida")
             st.write("") # Espaçador
             df_a1_volta = _itinerario_editor("Volta", "a1_volta")
 
         with tabA2:
-            it_a2_oficio_id = _selectbox("Ofício de Autorização (Alt 2)", refs["oficios"])
-            if it_a2_oficio_id:
-                 st.caption(f"**Assunto:** {refs['assuntos_oficios'].get(it_a2_oficio_id, 'Sem assunto')}")
+            it_a2_descricao = st.text_input("Descrição (Alt 2)", placeholder="Ex: Via Linha Amarela, etc.")
             df_a2_ida = _itinerario_editor("Ida", "a2_ida")
             st.write("") # Espaçador
             df_a2_volta = _itinerario_editor("Volta", "a2_volta")
 
         with tabA3:
-            it_a3_oficio_id = _selectbox("Ofício de Autorização (Alt 3)", refs["oficios"])
-            if it_a3_oficio_id:
-                 st.caption(f"**Assunto:** {refs['assuntos_oficios'].get(it_a3_oficio_id, 'Sem assunto')}")
+            it_a3_descricao = st.text_input("Descrição (Alt 3)", placeholder="Ex: Via Túnel Rebouças, etc.")
             df_a3_ida = _itinerario_editor("Ida", "a3_ida")
             st.write("") # Espaçador
             df_a3_volta = _itinerario_editor("Volta", "a3_volta")
@@ -271,9 +268,9 @@ def render():
             "itinerarios":              [], # Será preenchido abaixo
             "itinerarios_oficios": {
                 "R": it_reg_oficio_id,
-                "A1": it_a1_oficio_id,
-                "A2": it_a2_oficio_id,
-                "A3": it_a3_oficio_id
+                "A1": it_a1_descricao,
+                "A2": it_a2_descricao,
+                "A3": it_a3_descricao
             }
         }
 
