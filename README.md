@@ -5,28 +5,34 @@ Aplicação Streamlit para cadastro e consulta de linhas de ônibus utilizando b
 ## 🚀 Início Rápido
 
 ### Pré-requisitos
+
 - Python 3.10+
 
 ### Instalação
 
 1. **Criar e ativar ambiente virtual:**
+
    ```powershell
    python -m venv venv
    .\venv\Scripts\Activate.ps1
    ```
 
 2. **Instalar dependências:**
+
    ```bash
    pip install -r requirements.txt
    ```
 
 ### Inicializar o Banco de Dados
+
 Este passo cria as tabelas e popula com dados iniciais (Serviços, Operadores, Áreas, etc).
+
 ```bash
 python utils/init_db.py
 ```
 
 *(Opcional)* Se o banco já possui dados e você acabou de adicionar a funcionalidade de logs:
+
 ```bash
 python utils/populate_initial_logs.py
 ```
@@ -39,7 +45,7 @@ ou
 python -m streamlit run app.py #Caso o streamlit não esteja no path.
 ```
 
-Acesse em: http://localhost:8501
+Acesse em: <http://localhost:8501>
 
 ## 🔐 Login e Autenticação
 
@@ -94,38 +100,44 @@ cadastro_RIO_SQLite/
 ## ⚙️ Funcionalidades
 
 ### Autenticação e Autorização
+- ✅ **Página de Rosto** - Interface inicial moderna com divisão de tela para acesso rápido público (visitante) e acesso interno restrito.
 - ✅ **Login Seguro** - Autenticação com senhas hashadas (bcrypt)
-- ✅ **4 Roles de Usuário** - Admin, Editor, Visualizador e User
+- ✅ **4 Roles de Usuário** - Admin, Editor, Visualizador e User (Acesso Público entra com privilégios de User)
 - ✅ **Rate Limiting** - Proteção contra ataques de força bruta
 - ✅ **Validação de Senhas** - Política de segurança robusta
 
 ### Gestão de Linhas
-- ✅ **Cadastro de Linhas** - Adicionar novos registros de ônibus
-- ✅ **Consulta com Filtros** - Busca otimizada por número, área, operador e tipo
-- ✅ **Edição (CRUD Completo)** - Operações seguras de Alterar e Excluir
-- ✅ **📜 Histórico de Linhas** - Rastreio completo de Criação, Alteração e Exclusão
-- ✅ **Ficha Cadastral** - Interface de visualização detalhada
-- ✅ **Exportação CSV** - Download dos resultados da consulta
+- ✅ **Cadastro de Linhas** - Adicionar novos registros de ônibus com novos campos estruturados como Propulsão.
+- ✅ **Consulta com Filtros** - Busca otimizada por número, área, operador, tipo, status de sincronização GTFS e assunto do último ofício de frota.
+- ✅ **Edição (CRUD Completo)** - Operações seguras de Alterar e Excluir com histórico.
+- ✅ **📜 Histórico de Linhas** - Rastreio completo de Criação, Alteração e Exclusão (movidas para tabela LinhaExcluida).
+- ✅ **Ficha Cadastral** - Interface de visualização técnica e impressão, com coloração dinâmica correspondente à área operacional, itinerários e dados geográficos do GTFS.
+- ✅ **Exportação CSV** - Download dos resultados da consulta e do histórico.
 
 ### Administração (Admin/Editor)
+- ✅ **Módulo GTFS** - Upload e exclusão de arquivos de dados geográficos do GTFS (`.zip`) salvos em disco (apenas admin/editor).
 - ✅ **Gerenciamento de Usuários** - Criar, editar e excluir usuários (apenas admin)
 - ✅ **Alteração de Senhas** - Admin pode redefinir senhas de qualquer usuário
-- ✅ **Tabelas de Referência** - Gerenciamento de serviços, áreas, operadores, etc.
+- ✅ **Tabelas de Referência** - Gerenciamento de serviços, áreas, operadores, tipos de veículo, propulsões e ofícios.
 
 ### UI/UX
+
 - ✅ **Design Moderno** - Interface responsiva
 - ✅ **Timeout Automático** - Logout após 30 minutos de inatividade
 
 ## 🛠️ Desenvolvimento
 
 ### Adicionar nova tabela de referência
+
 1. Adicione a definição no `utils/init_db.py`
 2. Crie o formulário em `views/mod_cadastro_ref.py`
 
 ### Modificar Consultas
+
 - Edite as funções em `models/db.py`. O projeto utiliza `sqlite3` e `pandas`.
 
 ### Adicionar novo usuário via código
+
 ```python
 import uuid
 import bcrypt
@@ -146,6 +158,7 @@ pwd_hash = bcrypt.hashpw(b'SuaSenha@123', bcrypt.gensalt()).decode()
 ## 🐛 Troubleshooting
 
 **Módulo não encontrado:**
+
 ```bash
 pip install -r requirements.txt
 ```

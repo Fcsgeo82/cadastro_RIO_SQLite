@@ -72,21 +72,25 @@ Este é um sistema de **cadastro e consulta de linhas de ônibus** desenvolvido 
 O sistema possui quatro níveis de acesso:
 
 ### 👤 Usuário (user)
+
 - Consultar linhas ativas (filtros restritos)
 - Visualizar fichas
 
 ### 👁️ Visualizador (visualizador)
+
 - Consultar linhas ativas (todos os filtros)
 - Visualizar fichas
 - Consultar tabelas de referência
 
 ### ✏️ Editor
+
 - Tudo do visualizador +
 - Cadastrar novas linhas
 - Editar linhas existentes
 - **Consultar histórico completo e fichas excluídas**
 
 ### 👑 Administrador (admin)
+
 - Tudo do editor +
 - Gerenciar usuários
 - Excluir linhas
@@ -106,6 +110,7 @@ O sistema possui quatro níveis de acesso:
 1. **Clone o repositório**
 
 2. **Crie um ambiente virtual (recomendado):**
+
    ```bash
    python -m venv venv
    ```
@@ -115,20 +120,25 @@ O sistema possui quatro níveis de acesso:
    - Linux/Mac: `source venv/bin/activate`
 
 4. **Instale as dependências:**
+
    ```bash
    pip install -r requirements.txt
    ```
 
 5. **Inicialize o banco de dados:**
+
    ```bash
    python utils/init_db.py
    ```
 
 6. **Execute o aplicativo:**
+
    ```bash
    streamlit run app.py
    ou
+
 python -m streamlit run app.py  #Caso o streamlit não esteja no path.
+
    ```
 
 7. **Acesse no navegador:**
@@ -210,6 +220,7 @@ Ao abrir o sistema, você verá a tela de login com header amarelo e logo. Insir
 ## 8. Estrutura de Arquivos (Padrão MVC)
 
 ```
+
 cadastro_RIO_SQLite/
 ├── app.py                      # Arquivo principal (Entry Point)
 ├── models/                     # Model - Dados e lógica de banco
@@ -234,6 +245,7 @@ cadastro_RIO_SQLite/
 ├── RELEASE.md                 # Este arquivo
 ├── LICENSE                    # CC BY 4.0
 └── README.md                  # Documentação
+
 ```
 
 ---
