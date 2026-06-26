@@ -47,6 +47,22 @@ python -m streamlit run app.py #Caso o streamlit não esteja no path.
 
 Acesse em: <http://localhost:8501>
 
+### 🌐 Execução Fácil e Compartilhamento (Windows)
+
+O projeto inclui o script `iniciar_sistema.bat` para automatizar a inicialização do app e permitir o compartilhamento externo instantâneo:
+
+1. **Duplo clique** no arquivo `iniciar_sistema.bat`.
+2. O script fará duas ações consecutivas:
+   - Abre o servidor Streamlit em segundo plano no ambiente virtual.
+   - Abre um túnel SSH seguro e público usando o **Pinggy** na porta `8501`.
+3. Uma URL pública (geralmente `https://xxxx.pinggy.link` ou similar) aparecerá na janela do terminal.
+4. **Copie e compartilhe** essa URL com qualquer pessoa externa para que ela possa visualizar e testar o sistema diretamente pelo navegador de fora da sua rede local.
+
+5. **ATENÇÃO**:
+   - Para o compartilhamento externo funcionar é necessário uma conexão estável com a internet e que o **Pinggy** esteja funcionando corretamente.
+   - O link ficará disponível enquanto o servidor Streamlit estiver rodando e o túnel SSH estiver aberto.
+   - O **Pinggy** pode apresentar instabilidade em alguns momentos, nesse caso, tente novamente mais tarde ou utilize uma conexão de internet mais estável.
+
 ## 🔐 Login e Autenticação
 
 O sistema possui 4 tipos de usuários com permissões diferentes:
@@ -100,6 +116,7 @@ cadastro_RIO_SQLite/
 ## ⚙️ Funcionalidades
 
 ### Autenticação e Autorização
+
 - ✅ **Página de Rosto** - Interface inicial moderna com divisão de tela para acesso rápido público (visitante) e acesso interno restrito.
 - ✅ **Login Seguro** - Autenticação com senhas hashadas (bcrypt)
 - ✅ **4 Roles de Usuário** - Admin, Editor, Visualizador e User (Acesso Público entra com privilégios de User)
@@ -107,6 +124,7 @@ cadastro_RIO_SQLite/
 - ✅ **Validação de Senhas** - Política de segurança robusta
 
 ### Gestão de Linhas
+
 - ✅ **Cadastro de Linhas** - Adicionar novos registros de ônibus com novos campos estruturados como Propulsão.
 - ✅ **Consulta com Filtros** - Busca otimizada por número, área, operador, tipo, status de sincronização GTFS e assunto do último ofício de frota.
 - ✅ **Edição (CRUD Completo)** - Operações seguras de Alterar e Excluir com histórico.
@@ -115,6 +133,7 @@ cadastro_RIO_SQLite/
 - ✅ **Exportação CSV** - Download dos resultados da consulta e do histórico.
 
 ### Administração (Admin/Editor)
+
 - ✅ **Módulo GTFS** - Upload e exclusão de arquivos de dados geográficos do GTFS (`.zip`) salvos em disco (apenas admin/editor).
 - ✅ **Gerenciamento de Usuários** - Criar, editar e excluir usuários (apenas admin)
 - ✅ **Alteração de Senhas** - Admin pode redefinir senhas de qualquer usuário
