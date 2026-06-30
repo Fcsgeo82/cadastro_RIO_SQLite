@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-06-30
+
+### Adicionado
+- **Tabela e Relação de Lote**: Criação da tabela `Lote` (`loteID`, `descricao`) no banco SQLite e inclusão da propriedade `lote` nas tabelas `Linha` e `LinhaExcluida`.
+- **Gestão de Lotes**: CRUD para cadastro, listagem e exclusão de Lotes no painel de Tabelas de Referência (`mod_cadastro_ref.py`).
+- **Seleção de Lote**: Dropdowns de Lote adicionados nos formulários de cadastro e edição de linha.
+- **Detalhes Automáticos do Operador**: O preenchimento do operador na linha agora carrega e exibe automaticamente o `Termo`, `Razão Social` e `Nome Fantasia` vinculados na Ficha Cadastral da linha.
+- **Propulsão Multiseleção**: Campo de Propulsão reconfigurado como multiselect (igual aos Dias de Operação), permitindo associar múltiplos tipos de propulsão a uma única linha, salvando-os de forma concatenada no banco de dados e adaptando as consultas via filtro (`LIKE`).
+
+### Modificado / Ajustado
+- **Remoção do Grupamento BRS**: Omissão das referências visuais de "Grupamento BRS" das telas de cadastro, edição, consulta e ficha cadastral (com a tabela preservada internamente no BD).
+- **Layout da Ficha Cadastral**:
+  - Reordenação de campos em *Informações Gerais* (GTFS agora precede a Extensão de volta).
+  - Distribuição em duas colunas na seção *Operador Responsável* (Coluna 1: Razão Social, Lote e Área Operacional; Coluna 2: Nome Fantasia e Termo).
+  - Alteração na Área Operacional para juntar `codigo` e `descricao` (e não mais `corReferencia`), enquanto o fundo colorido é mantido dinâmico.
+  - Correção de CSS no badge da Área Operacional para respeitar o casing original do banco (remoção de `text-transform: lowercase`).
+
 ## [1.2.0] - 2026-06-26
 
 ### Adicionado

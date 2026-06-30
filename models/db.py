@@ -395,14 +395,14 @@ def consultar_linhas(
         condicoes.append("l.frotaTipoVeiculo = ?")
         params.append(frota_tipo_veiculo_id)
     if frota_tipo_propulsao_id:
-        condicoes.append("l.frotaTipoPropulsao = ?")
-        params.append(frota_tipo_propulsao_id)
+        condicoes.append("l.frotaTipoPropulsao LIKE ?")
+        params.append(f"%{frota_tipo_propulsao_id}%")
     if grupamento_brs_id:
         condicoes.append("l.grupamentoBRS = ?")
         params.append(grupamento_brs_id)
     if tipologia_id:
-        condicoes.append("l.tipologiaRede = ?")
-        params.append(tipologia_id)
+        condicoes.append("l.tipologiaRede LIKE ?")
+        params.append(f"%{tipologia_id}%")
     if abrangencia_id:
         condicoes.append("l.abrangenciaTerritorial = ?")
         params.append(abrangencia_id)

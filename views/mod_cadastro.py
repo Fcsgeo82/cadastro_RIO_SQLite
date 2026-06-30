@@ -169,7 +169,8 @@ def render():
         with col17:
             frota_tipo_veiculo_id  = _selectbox("Tipo de Veículo da Frota", refs["tipos_veiculo"])
         with col18:
-            frota_tipo_propulsao_id = _selectbox("Propulsão", refs["tipos_propulsao"])
+            dias_prop_selecionados = st.multiselect("Propulsão", list(refs["tipos_propulsao"].keys()))
+            frota_tipo_propulsao_id = ",".join([refs["tipos_propulsao"][d] for d in dias_prop_selecionados]) if dias_prop_selecionados else None
         with col19:
             frota_ultimo_oficio_id = _selectbox("Ofício de Autorização da Frota", refs["oficios"])
             if frota_ultimo_oficio_id:

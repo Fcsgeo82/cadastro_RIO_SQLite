@@ -184,7 +184,15 @@ def render(linha_id: str):
         with col17:
             frota_tipo_veiculo_id  = _selectbox("Tipo de Veículo da Frota", refs.get("tipos_veiculo", {}), dados_bd.get("frotaTipoVeiculo"))
         with col18:
-            frota_tipo_propulsao_id = _selectbox("Propulsão", refs.get("tipos_propulsao", {}), dados_bd.get("frotaTipoPropulsao"))
+            valor_db_prop = dados_bd.get("frotaTipoPropulsao") or ""
+            ids_db_prop = [x.strip() for x in valor_db_prop.split(",") if x.strip()]
+            opcoes_prop = refs.get("tipos_propulsao", {})
+            default_chaves_prop = []
+            for label, id_val in opcoes_prop.items():
+                if str(id_val) in ids_db_prop:
+                    default_chaves_prop.append(label)
+            prop_selecionadas = st.multiselect("Propulsão", list(opcoes_prop.keys()), default=default_chaves_prop)
+            frota_tipo_propulsao_id = ",".join([opcoes_prop[d] for d in prop_selecionadas]) if prop_selecionadas else None
         with col19:
             frota_ultimo_oficio_id = _selectbox("Ofício de Autorização da Frota", refs.get("oficios", {}), dados_bd.get("frotaUltimoOficio"))
             if frota_ultimo_oficio_id:
