@@ -430,18 +430,6 @@ TABELAS = {
         "tabela":   "AreaOperacional",
         "pk":       "areaOperacionalID",
     },
-    "Característica": {
-        "form":     _form_caracteristica,
-        "icone":    "✨",
-        "tabela":   "Caracteristica",
-        "pk":       "caracteristicaID",
-    },
-    "Grupamento BRS": {
-        "form":     _form_grupamento_brs,
-        "icone":    "🔢",
-        "tabela":   "GrupamentoBRS",
-        "pk":       "grupamentoBRSID",
-    },
     "Lote": {
         "form":     _form_lote,
         "icone":    "🏷️",
@@ -460,12 +448,7 @@ TABELAS = {
         "tabela":   "operador",
         "pk":       "operadorID",
     },
-    "Parâmetro": {
-        "form":     _form_parametro,
-        "icone":    "⚙️",
-        "tabela":   "Parametro",
-        "pk":       "parametroID",
-    },
+
     "Serviço": {
         "form":     _form_servico,
         "icone":    "🚍",

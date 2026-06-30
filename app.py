@@ -279,6 +279,33 @@ if not st.session_state.get('logged_in'):
             box-shadow: 0 6px 12px rgba(0,0,0,0.25);
         }}
 
+        .btn-landing-internal {{
+            background-color: #444444;
+            color: #ffffff !important;
+            text-decoration: none !important;
+            font-family: 'Manrope', sans-serif;
+            font-weight: 800;
+            font-size: clamp(13px, 1.3vw, 18px);
+            letter-spacing: 0.05em;
+            text-align: center;
+            padding: clamp(14px, 1.8vh, 22px) clamp(16px, 2vw, 28px);
+            border-radius: 6px;
+            width: 100%;
+            max-width: min(440px, 34vw);
+            display: block;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+            border: none;
+            cursor: pointer;
+        }}
+
+        .btn-landing-internal:hover {{
+            background-color: #222222;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.25);
+        }}
+
         .landing-top {{
             display: flex;
             flex-direction: column;
@@ -398,7 +425,8 @@ if not st.session_state.get('logged_in'):
                 </div>
                 <div class="landing-buttons-box">
                     <a href="?action=public" target="_self" class="btn-landing-main">CONSULTA DE LINHAS</a>
-                    <a href="?action=login" target="_self" class="btn-landing-secondary">ACESSO INTERNO</a>
+                    <a href="https://siurb.rio/portal/apps/webappviewer/index.html?id=e928b21ba61b430582eb3557d615a2f3" target="_blank" class="btn-landing-secondary">CONSULTA MAPA</a>
+                    <a href="?action=login" target="_self" class="btn-landing-internal" style="margin-top: 30px;">🔒 ACESSO INTERNO</a>
                 </div>
                 <div class="landing-bottom">
                     <div class="landing-conditions">

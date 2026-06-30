@@ -13,11 +13,13 @@ All notable changes to this project will be documented in this file.
 
 ### Modificado / Ajustado
 - **Remoção do Grupamento BRS**: Omissão das referências visuais de "Grupamento BRS" das telas de cadastro, edição, consulta e ficha cadastral (com a tabela preservada internamente no BD).
+- **Ajustes de Tabelas de Referência**: Omissão das tabelas `Característica`, `Grupamento BRS` e `Parâmetro` do menu suspenso de gerenciamento de referências.
 - **Layout da Ficha Cadastral**:
   - Reordenação de campos em *Informações Gerais* (GTFS agora precede a Extensão de volta).
   - Distribuição em duas colunas na seção *Operador Responsável* (Coluna 1: Razão Social, Lote e Área Operacional; Coluna 2: Nome Fantasia e Termo).
   - Alteração na Área Operacional para juntar `codigo` e `descricao` (e não mais `corReferencia`), enquanto o fundo colorido é mantido dinâmico.
   - Correção de CSS no badge da Área Operacional para respeitar o casing original do banco (remoção de `text-transform: lowercase`).
+  - Ocultação inteligente de sentidos sem pontos cadastrados nos itinerários alternativos.
 
 ## [1.2.0] - 2026-06-26
 
