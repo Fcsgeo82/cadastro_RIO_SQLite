@@ -116,24 +116,37 @@ def render(linha_id: str):
             of_raw_it = of_id_it or "-"
             label_autorizacao = "Descrição"
         
+        has_ida = any(it.get("tipo") == t and str(it.get("sentido")) == "0" for it in it_lista)
+        has_volta = any(it.get("tipo") == t and str(it.get("sentido")) == "1" for it in it_lista)
+
+        ida_html = ""
+        if t == "R" or has_ida:
+            ida_html = f"""
+            <div class="ficha-it-header">Itinerário de Ida</div>
+            <table class="ficha-it-table">
+                <thead><tr><th>Logradouro</th><th>Complemento</th><th>Bairro</th></tr></thead>
+                <tbody>{_gerar_linhas_itinerario(t, "0")}</tbody>
+            </table>
+            """
+
+        volta_html = ""
+        if t == "R" or has_volta:
+            volta_html = f"""
+            <div class="ficha-it-header">Itinerário de Volta</div>
+            <table class="ficha-it-table">
+                <thead><tr><th>Logradouro</th><th>Complemento</th><th>Bairro</th></tr></thead>
+                <tbody>{_gerar_linhas_itinerario(t, "1")}</tbody>
+            </table>
+            """
+
         itinerarios_html += f"""
         <div class="ficha-section-header">{nome_it}</div>
         <div class="ficha-grid">
             <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Tipo de Operação:</span><span class="ficha-value">{v_tipo}</span></div>
             <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">{label_autorizacao}:</span><span class="ficha-value">{of_raw_it}</span></div>
         </div>
-
-        <div class="ficha-it-header">Itinerário de Ida</div>
-        <table class="ficha-it-table">
-            <thead><tr><th>Logradouro</th><th>Complemento</th><th>Bairro</th></tr></thead>
-            <tbody>{_gerar_linhas_itinerario(t, "0")}</tbody>
-        </table>
-
-        <div class="ficha-it-header">Itinerário de Volta</div>
-        <table class="ficha-it-table">
-            <thead><tr><th>Logradouro</th><th>Complemento</th><th>Bairro</th></tr></thead>
-            <tbody>{_gerar_linhas_itinerario(t, "1")}</tbody>
-        </table>
+        {ida_html}
+        {volta_html}
         """
 
     # --- Imagem do Logo ---
