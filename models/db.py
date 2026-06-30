@@ -67,22 +67,44 @@ def carregar_operadores() -> pd.DataFrame:
 
 
 @st.cache_data(show_spinner=False)
+def carregar_detalhes_operadores() -> dict:
+    """Retorna um dicionário mapeando operadorID -> {termo, razaoSocial, nomeFantasia}."""
+    df = _query_df(f"""
+        SELECT operadorID, termo, razaoSocial, nomeFantasia
+        FROM operador
+    """)
+    if df.empty:
+        return {}
+    df = df.fillna("-")
+    df = df.set_index('operadorID')
+    return df.to_dict('index')
+
+
+@st.cache_data(show_spinner=False)
 def carregar_areas_operacionais() -> pd.DataFrame:
     df = _query_df(f"""
-        SELECT areaOperacionalID, codigo, corReferencia
+        SELECT areaOperacionalID, codigo, descricao
         FROM AreaOperacional
         ORDER BY codigo
     """)
     if df.empty:
         return df
     
-    # Montar label: (codigo - corReferencia)
+    # Montar label: (codigo - descricao)
     df['label'] = (
         df['codigo'].astype(str) + " - " + 
-        df['corReferencia'].fillna("Sem Cor")
+        df['descricao'].fillna("Sem Descrição")
     )
     
     return df[['areaOperacionalID', 'label']].rename(columns={"areaOperacionalID": "id"})
+
+
+@st.cache_data(show_spinner=False)
+def carregar_cores_areas() -> dict:
+    df = _query_df("SELECT areaOperacionalID, corReferencia FROM AreaOperacional")
+    if df.empty:
+        return {}
+    return dict(zip(df['areaOperacionalID'], df['corReferencia']))
 
 
 @st.cache_data(show_spinner=False)
@@ -159,6 +181,16 @@ def carregar_grupamentos() -> pd.DataFrame:
         return df
     return df.rename(columns={"grupamentoBRSID": "id", "descricao": "label"})
 
+@st.cache_data(show_spinner=False)
+def carregar_lotes() -> pd.DataFrame:
+    df = _query_df(f"""
+        SELECT loteID, descricao
+        FROM Lote
+        ORDER BY descricao
+    """)
+    if df.empty:
+        return df
+    return df.rename(columns={"loteID": "id", "descricao": "label"})
 
 @st.cache_data(show_spinner=False)
 def carregar_tipologia_rede() -> pd.DataFrame:
@@ -281,6 +313,7 @@ def inserir_linha(dados: dict) -> tuple[bool, str]:
         "abrangenciaTerritorial": dados.get("abrangenciaTerritorial") or None,
         "geometriaTracado":      dados.get("geometriaTracado") or None,
         "hierarquiaAtendimento": dados.get("hierarquiaAtendimento") or None,
+        "lote":                  dados.get("lote") or None,
     }
 
     cols = ", ".join(row.keys())
@@ -561,6 +594,7 @@ def atualizar_linha(linha_id: str, dados: dict) -> tuple[bool, str]:
         "abrangenciaTerritorial": dados.get("abrangenciaTerritorial") or None,
         "geometriaTracado":      dados.get("geometriaTracado") or None,
         "hierarquiaAtendimento": dados.get("hierarquiaAtendimento") or None,
+        "lote":                  dados.get("lote") or None,
     }
 
     set_clause = ", ".join([f"{k} = ?" for k in row.keys()])

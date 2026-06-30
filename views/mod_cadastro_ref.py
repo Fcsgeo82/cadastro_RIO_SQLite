@@ -155,6 +155,24 @@ def _form_grupamento_brs():
         _feedback(*_inserir("GrupamentoBRS", row))
 
 
+def _form_lote():
+    st.markdown("**Campos:** Descrição.")
+    with st.form("form_lote", clear_on_submit=True):
+        descricao = st.text_input("Descrição *", placeholder="Ex: Lote 1")
+        submitted = st.form_submit_button("💾 Salvar", type="primary",
+                                          width='stretch')
+
+    if submitted:
+        if not descricao.strip():
+            st.error("⚠️ O campo Descrição é obrigatório.")
+            return
+        row = {
+            "loteID":    str(uuid.uuid4()),
+            "descricao": descricao.strip(),
+        }
+        _feedback(*_inserir("Lote", row))
+
+
 def _form_oficio():
     st.markdown("**Campos:** Número, Data, Assunto, Número do Processo e Linha relacionada.")
     with st.form("form_oficio", clear_on_submit=True):
@@ -423,6 +441,12 @@ TABELAS = {
         "icone":    "🔢",
         "tabela":   "GrupamentoBRS",
         "pk":       "grupamentoBRSID",
+    },
+    "Lote": {
+        "form":     _form_lote,
+        "icone":    "🏷️",
+        "tabela":   "Lote",
+        "pk":       "loteID",
     },
     "Ofício": {
         "form":     _form_oficio,

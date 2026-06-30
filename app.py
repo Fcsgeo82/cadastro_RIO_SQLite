@@ -768,7 +768,6 @@ elif aba == "FichaExcluida":
         v_tipo = obter_label(refs.get('tipos_sistema', {}), dados.get('tipoSistema'))
         v_caracteristica = obter_label(refs.get('caracteristicas', {}), dados.get('caracteristica'))
         v_area_op = obter_label(refs.get('areas_op', {}), dados.get('areaOperacional'))
-        v_grupamento = obter_label(refs.get('grupamentos', {}), dados.get('grupamentoBRS'))
         v_parametro = obter_label(refs.get('parametros', {}), dados.get('parametro_novo'))
         v_km_ida = str(dados.get('kmIDA')).replace('.',',') if dados.get('kmIDA') else '-'
         v_km_volta = str(dados.get('kmVOLTA')).replace('.',',') if dados.get('kmVOLTA') else '-'
@@ -798,12 +797,10 @@ elif aba == "FichaExcluida":
                 st.write("**Data Criação:**", v_criacao)
         
         with st.expander("Características"):
-            col1, col2, col3 = st.columns(3)
+            col1, col2 = st.columns(2)
             with col1:
                 st.write("**Característica:**", v_caracteristica)
             with col2:
-                st.write("**Grupamento BRS:**", v_grupamento)
-            with col3:
                 st.write("**Ofício Principal:**",unsafe_allow_html=True)
                 st.markdown(v_oficio_prin, unsafe_allow_html=True)
         

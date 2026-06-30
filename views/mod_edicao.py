@@ -134,18 +134,14 @@ def render(linha_id: str):
         with col12:
             abrangencia_id   = _selectbox("Abrangência Territorial", refs.get("abrangencia", {}), dados_bd.get("abrangenciaTerritorial"))
         
-        col13, col14 = st.columns(2)
+        col13, col14, col15 = st.columns(3)
         with col13:
             geometria_id     = _selectbox("Geometria do Traçado", refs.get("geometria", {}), dados_bd.get("geometriaTracado"))
         with col14:
             hierarquia_id    = _selectbox("Hierarquia de Atendimento", refs.get("hierarquia", {}), dados_bd.get("hierarquiaAtendimento"))
-
-        col15, col16 = st.columns(2)
         with col15:
-            grupamento_id    = str(dados_bd.get("grupamentoBRS")) if dados_bd.get("grupamentoBRS") else None
-            grupamento_label = _selectbox("Grupamento BRS", refs.get("grupamentos", {}), grupamento_id)
-        with col16:
-            pass # Espaçador
+            lote_id          = str(dados_bd.get("lote")) if dados_bd.get("lote") else None
+            lote_label       = _selectbox("Lote", refs.get("lotes", {}), lote_id)
 
         # ── Quilometragem ────────────────────────────────────────
         st.divider()
@@ -299,7 +295,8 @@ def render(linha_id: str):
                 "kmVOLTA":                  kmVOLTA if kmVOLTA else None,
                 "parametro_novo":           None,
                 "caracteristica":           None,
-                "grupamentoBRS":            grupamento_label,
+                "grupamentoBRS":            None,
+                "lote":                     lote_label,
                 "tipologiaRede":            tipologia_id,
                 "abrangenciaTerritorial":   abrangencia_id,
                 "geometriaTracado":         geometria_id,

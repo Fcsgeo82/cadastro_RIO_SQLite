@@ -8,11 +8,11 @@ import pandas as pd
 import datetime
 from models.db import (
     inserir_linha, opcoes,
-    carregar_servicos, carregar_operadores,
-    carregar_areas_operacionais, 
+    carregar_servicos, carregar_operadores, carregar_detalhes_operadores,
+    carregar_areas_operacionais, carregar_cores_areas,
     carregar_parametros_novos, carregar_caracteristicas,
     carregar_tipos_sistema, carregar_tipos_veiculo, carregar_tipos_propulsao,
-    carregar_grupamentos, carregar_oficios, carregar_assuntos_oficios,
+    carregar_grupamentos, carregar_lotes, carregar_oficios, carregar_assuntos_oficios,
     carregar_tipologia_rede, carregar_abrangencia_territorial,
     carregar_geometria_tracado, carregar_hierarquia_atendimento
 )
@@ -28,11 +28,14 @@ def _carregar_todas_referencias():
     return {
         "servicos":        opcoes(carregar_servicos()),
         "operadores":      opcoes(carregar_operadores()),
+        "operadores_detalhes": carregar_detalhes_operadores(),
         "areas_op":        opcoes(carregar_areas_operacionais()),
+        "areas_op_cores":  carregar_cores_areas(),
         "tipos_sistema":   opcoes(carregar_tipos_sistema()),
         "tipos_veiculo":   opcoes(carregar_tipos_veiculo()),
         "tipos_propulsao": opcoes(carregar_tipos_propulsao()),
         "grupamentos":     opcoes(carregar_grupamentos()),
+        "lotes":           opcoes(carregar_lotes()),
         "oficios":         opcoes(df_of),
         "datas_oficios":   dict(zip(df_of["id"], df_of["dataOficio"])) if not df_of.empty else {},
         "assuntos_oficios": carregar_assuntos_oficios(),
@@ -135,17 +138,13 @@ def render():
         with col12:
             abrangencia_id   = _selectbox("Abrangência Territorial", refs["abrangencia"])
         
-        col13, col14 = st.columns(2)
+        col13, col14, col15 = st.columns(3)
         with col13:
             geometria_id     = _selectbox("Geometria do Traçado", refs["geometria"])
         with col14:
             hierarquia_id    = _selectbox("Hierarquia de Atendimento", refs["hierarquia"])
-
-        col15, col16 = st.columns(2)
         with col15:
-            grupamento_label = _selectbox("Grupamento BRS", refs["grupamentos"])
-        with col16:
-            pass # Espaçador
+            lote_label       = _selectbox("Lote", refs["lotes"])
 
         # ── Quilometragem ────────────────────────────────────────
         st.divider()
@@ -255,7 +254,7 @@ def render():
             "kmVOLTA":                  kmVOLTA,
             "parametro_novo":           None,
             "caracteristica":           None,
-            "grupamentoBRS":            grupamento_label,
+            "grupamentoBRS":            None,
             "frotaTipoVeiculo":         frota_tipo_veiculo_id,
             "frotaTipoPropulsao":       frota_tipo_propulsao_id,
             "frotaUltimoOficio":        frota_ultimo_oficio_id,
@@ -265,6 +264,7 @@ def render():
             "abrangenciaTerritorial":   abrangencia_id,
             "geometriaTracado":         geometria_id,
             "hierarquiaAtendimento":    hierarquia_id,
+            "lote":                     lote_label,
             "itinerarios":              [], # Será preenchido abaixo
             "itinerarios_oficios": {
                 "R": it_reg_oficio_id,

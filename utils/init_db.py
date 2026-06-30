@@ -25,6 +25,10 @@ def init_db():
             "grupamentoBRSID TEXT PRIMARY KEY",
             "descricao INTEGER"
         ],
+        "Lote": [
+            "loteID TEXT PRIMARY KEY",
+            "descricao TEXT"
+        ],
 "Linha": [
     "linhaID TEXT PRIMARY KEY",
     "numeroLinha TEXT",
@@ -56,7 +60,8 @@ def init_db():
     "tipologiaRede TEXT",
     "abrangenciaTerritorial TEXT",
     "geometriaTracado TEXT",
-    "hierarquiaAtendimento TEXT"
+    "hierarquiaAtendimento TEXT",
+    "lote TEXT"
 ],
         "Oficio": [
             "oficioID TEXT PRIMARY KEY",
@@ -132,7 +137,8 @@ def init_db():
     "parametro TEXT",
     "oficioExclusao TEXT",
     "dataExclusao TIMESTAMP",
-    "usuarioExclusao TEXT"
+    "usuarioExclusao TEXT",
+    "lote TEXT"
 ],
 "Itinerario": [
     "itinerarioID TEXT PRIMARY KEY",

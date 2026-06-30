@@ -37,7 +37,10 @@ def render(linha_id: str):
     v_servico = obter_label(refs.get('servicos', {}), dados.get('servico'))
     v_vista = dados.get('vista', '-')
     v_via = dados.get('via') or '-'
-    v_operador = obter_label(refs.get('operadores', {}), dados.get('operador'))
+    op_detalhes = refs.get('operadores_detalhes', {}).get(dados.get('operador')) or {}
+    v_termo = op_detalhes.get('termo', '-')
+    v_razao_social = op_detalhes.get('razaoSocial', '-')
+    v_nome_fantasia = op_detalhes.get('nomeFantasia', '-')
     
     v_criacao = dados.get('dataCriacaoLinha') or '-'
     if "-" in v_criacao and len(v_criacao) == 10:
@@ -45,17 +48,18 @@ def render(linha_id: str):
 
     v_tipo = obter_label(refs.get('tipos_sistema', {}), dados.get('tipoSistema'))
     v_area_op = obter_label(refs.get('areas_op', {}), dados.get('areaOperacional'))
+    nome_cor = refs.get('areas_op_cores', {}).get(dados.get('areaOperacional')) or ""
     CORES_AREA = {
         "Roxo": "#8330A5", "Laranja": "#FF8C00", "Marrom": "#8B4513",
         "Ciano": "#00BFFF", "Rosa": "#FF69B4", "Verde": "#2E8B57",
         "Azul": "#1a3a5c", "Vermelho": "#DC143C", "Cinza": "#808080",
     }
-    v_cor_area = next((hex for nome, hex in CORES_AREA.items() if nome in v_area_op), "#1a3a5c")
-    v_grupamento = obter_label(refs.get('grupamentos', {}), dados.get('grupamentoBRS'))
+    v_cor_area = next((hex for nome, hex in CORES_AREA.items() if nome in nome_cor), "#1a3a5c")
     
     v_km_ida = str(dados.get('kmIDA')).replace('.',',') if dados.get('kmIDA') else '-'
     v_km_volta = str(dados.get('kmVOLTA')).replace('.',',') if dados.get('kmVOLTA') else '-'
     v_obs = dados.get('observacao') or '-'
+    v_lote = obter_label(refs.get('lotes', {}), dados.get('lote')) or '-'
 
     v_tipologia = obter_label(refs.get('tipologia', {}), dados.get('tipologiaRede'))
     v_abrangencia = obter_label(refs.get('abrangencia', {}), dados.get('abrangenciaTerritorial'))
@@ -161,7 +165,7 @@ def render(linha_id: str):
     .ficha-root .ficha-field { display: flex; flex-direction: row; gap: 4px; align-items: baseline; }
     .ficha-root .ficha-label { font-weight: 700; white-space: nowrap; font-size: 11px; }
     .ficha-root .ficha-value { font-weight: 400; font-size: 11px; }
-    .ficha-root .ficha-area-badge { color: white; padding: 2px 30px; font-weight: bold; font-size: 11px; margin-left: 10px; border-radius: 0px; text-transform: lowercase; }
+    .ficha-root .ficha-area-badge { color: white; padding: 2px 30px; font-weight: bold; font-size: 11px; margin-left: 10px; border-radius: 0px; }
     .ficha-root .ficha-status-badge { color: white; padding: 2px 8px; font-weight: bold; font-size: 9px; border-radius: 4px; text-transform: uppercase; margin-left: 5px; display: inline-block; }
     .ficha-root .ficha-status-ativa { background-color: #2e7d32; }
     .ficha-root .ficha-status-inativa { background-color: #c62828; }
@@ -211,12 +215,11 @@ def render(linha_id: str):
                     <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Linha:</span><span class="ficha-value">{v_linha}</span></div>
                     <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Serviço:</span><span class="ficha-value">{v_servico}</span></div>
                     <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Vista:</span><span class="ficha-value">{v_vista}</span></div>
-                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Grupamento BRS:</span><span class="ficha-value">{v_grupamento}</span></div>
                     <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Via:</span><span class="ficha-value">{v_via}</span></div>
                     <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Data de Criação:</span><span class="ficha-value">{v_criacao}</span></div>
                     <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Extensão de ida:</span><span class="ficha-value">{v_km_ida} km</span></div>
-                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Extensão de volta:</span><span class="ficha-value">{v_km_volta} km</span></div>
                     <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Plano Operacional (GTFS):</span><span class="ficha-status-badge {v_gtfs_class}">{v_gtfs_status}</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Extensão de volta:</span><span class="ficha-value">{v_km_volta} km</span></div>
                     <div class="ficha-field" style="grid-column: span 12;"><span class="ficha-label">Observação:</span><span class="ficha-value">{v_obs}</span></div>
                 </div>
             </div>
@@ -225,11 +228,11 @@ def render(linha_id: str):
             <div class="ficha-section">
                 <div class="ficha-section-header">OPERADOR RESPONSÁVEL</div>
                 <div class="ficha-grid">
-                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Lote:</span><span class="ficha-value">-</span></div>
-                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Termo:</span><span class="ficha-value">-</span></div>
-                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Razão Social:</span><span class="ficha-value">{v_operador}</span></div>
-                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Nome Fantasia:</span><span class="ficha-value">{v_operador}</span></div>
-                    <div class="ficha-field" style="grid-column: span 12;">
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Razão Social:</span><span class="ficha-value">{v_razao_social}</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Nome Fantasia:</span><span class="ficha-value">{v_nome_fantasia}</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Lote:</span><span class="ficha-value">{v_lote}</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;"><span class="ficha-label">Termo:</span><span class="ficha-value">{v_termo}</span></div>
+                    <div class="ficha-field" style="grid-column: span 6;">
                         <span class="ficha-label">Área Operacional:</span>
                         <span class="ficha-area-badge" style="background:{v_cor_area}">{v_area_op}</span>
                     </div>

@@ -133,11 +133,8 @@ def render():
             sel_prop        = st.selectbox("Propulsão", prop_labels)
             propulsao_id    = refs["tipos_propulsao"].get(sel_prop, "")
         with col11:
-            grup_labels     = ["Todos"] + list(refs["grupamentos"].keys())
-            sel_grup        = st.selectbox("Grupamento BRS", grup_labels)
-            grupamento_id   = refs["grupamentos"].get(sel_grup, "")
-        with col11:
             filtro_gtfs     = st.selectbox("Status no GTFS", ["Todos", "Ativas no GTFS", "Inativas no GTFS"])
+            grupamento_id   = ""
 
     col_b1, col_b2, _ = st.columns([1, 1, 4])
     with col_b1:
