@@ -326,7 +326,7 @@ if not st.session_state.get('logged_in'):
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: clamp(14px, 2vh, 28px);
+            gap: clamp(6px, 0.8vh, 12px);
             width: 100%;
         }}
 
@@ -338,12 +338,15 @@ if not st.session_state.get('logged_in'):
             text-align: center;
         }}
 
-        .landing-bottom {{
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: clamp(6px, 0.8vh, 12px);
-            width: 100%;
+        .landing-description {{
+            font-family: 'Manrope', sans-serif;
+            font-size: clamp(12px, 1vw, 15px);
+            color: #333333;
+            text-align: justify;
+            max-width: min(440px, 34vw);
+            line-height: 1.5;
+            margin-top: 5px;
+            margin-bottom: 10px;
         }}
 
         .landing-conditions {{
@@ -422,6 +425,9 @@ if not st.session_state.get('logged_in'):
                         {logo_html}
                     </div>
                     <div class="landing-welcome">Seja Bem-vindo!</div>
+                    <div class="landing-description">
+                        Este é o Sistema Oficial de Cadastro e Consulta de Linhas do Rio de Janeiro. Aqui você encontra dados atualizados sobre trajetos, áreas operacionais e mapas interativos dos ônibus em circulação, garantindo mais transparência. Explore os botões abaixo para acessar a consulta pública, visualizar o mapa ou acessar a área interna.
+                    </div>
                 </div>
                 <div class="landing-buttons-box">
                     <a href="?action=public" target="_self" class="btn-landing-main">CONSULTA DE LINHAS</a>
